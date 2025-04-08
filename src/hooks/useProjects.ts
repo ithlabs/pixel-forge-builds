@@ -36,7 +36,37 @@ export function useProjects() {
           throw error;
         }
         
-        setProjects(data || []);
+        // Map the data from Supabase to ensure the status matches our Project interface
+        const typedProjects: Project[] = (data || []).map(project => {
+          // Validate and convert the status to our expected type
+          let status: "planned" | "in_progress" | "completed" | "on_hold";
+          
+          switch (project.status) {
+            case "planned":
+              status = "planned";
+              break;
+            case "in_progress":
+              status = "in_progress";
+              break;
+            case "completed":
+              status = "completed";
+              break;
+            case "on_hold":
+              status = "on_hold";
+              break;
+            default:
+              // Default to "planned" if we get an unexpected status
+              status = "planned";
+              console.warn(`Unexpected project status: ${project.status}`);
+          }
+          
+          return {
+            ...project,
+            status: status
+          };
+        });
+        
+        setProjects(typedProjects);
       } catch (err: any) {
         setError(err);
         toast({
