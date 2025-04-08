@@ -6,13 +6,13 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 
 interface ProjectCardProps {
-  id: number;
+  id: string;
   name: string;
   location: string;
   startDate: string;
   endDate: string;
   budget: string;
-  status: "ongoing" | "completed" | "planned";
+  status: "ongoing" | "completed" | "planned" | "on_hold";
   progress: number;
 }
 
@@ -43,10 +43,12 @@ export const ProjectCard = ({
                 ? "bg-blue-500" 
                 : status === "completed" 
                 ? "bg-green-500" 
+                : status === "on_hold"
+                ? "bg-amber-500"
                 : "bg-amber-500"
             }
           >
-            {status.charAt(0).toUpperCase() + status.slice(1)}
+            {status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
           </Badge>
         </div>
       </CardHeader>
@@ -82,4 +84,4 @@ export const ProjectCard = ({
       </CardFooter>
     </Card>
   );
-};
+}

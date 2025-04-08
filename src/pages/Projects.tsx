@@ -4,72 +4,13 @@ import { ProjectCard } from "@/components/ProjectCard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useProjects } from "@/hooks/useProjects";
+import { formatCurrency } from "@/lib/formatters";
 import { Plus, Search } from "lucide-react";
 
 const Projects = () => {
-  // Mock data for projects
-  const projects = [
-    {
-      id: 1,
-      name: "Addis Heights Apartments",
-      location: "Bole, Addis Ababa",
-      startDate: "Jan 12, 2025",
-      endDate: "Nov 30, 2025",
-      budget: "$1.2M",
-      status: "ongoing" as const,
-      progress: 45,
-    },
-    {
-      id: 2,
-      name: "Mekelle Office Complex",
-      location: "Mekelle, Tigray",
-      startDate: "Mar 01, 2025",
-      endDate: "Aug 15, 2025",
-      budget: "$650K",
-      status: "ongoing" as const,
-      progress: 28,
-    },
-    {
-      id: 3,
-      name: "Hawassa Resort",
-      location: "Hawassa, SNNPR",
-      startDate: "May 15, 2025",
-      endDate: "Jun 01, 2026",
-      budget: "$3.5M",
-      status: "planned" as const,
-      progress: 0,
-    },
-    {
-      id: 4,
-      name: "Bahir Dar Community Center",
-      location: "Bahir Dar, Amhara",
-      startDate: "Sep 05, 2024",
-      endDate: "Dec 15, 2024",
-      budget: "$450K",
-      status: "completed" as const,
-      progress: 100,
-    },
-    {
-      id: 5,
-      name: "Dire Dawa Bridge",
-      location: "Dire Dawa",
-      startDate: "Feb 20, 2025",
-      endDate: "Oct 10, 2025",
-      budget: "$1.8M",
-      status: "ongoing" as const,
-      progress: 15,
-    },
-    {
-      id: 6,
-      name: "Adama Shopping Mall",
-      location: "Adama, Oromia",
-      startDate: "Jun 10, 2025",
-      endDate: "Jul 25, 2026",
-      budget: "$2.5M",
-      status: "planned" as const,
-      progress: 0,
-    },
-  ];
+  const { projects, loading } = useProjects();
 
   return (
     <div>
@@ -105,11 +46,39 @@ const Projects = () => {
         </div>
       </Card>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {projects.map(project => (
-          <ProjectCard key={project.id} {...project} />
-        ))}
-      </div>
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i} className="overflow-hidden">
+              <div className="p-4 space-y-3">
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {projects.map(project => (
+            <ProjectCard 
+              key={project.id}
+              id={project.id}
+              name={project.name}
+              location={project.location || ""}
+              startDate={project.start_date ? new Date(project.start_date).toLocaleDateString() : "TBD"}
+              endDate={project.end_date ? new Date(project.end_date).toLocaleDateString() : "TBD"}
+              budget={project.budget ? formatCurrency(project.budget) : "Not set"}
+              status={project.status === "in_progress" ? "ongoing" : project.status === "on_hold" ? "planned" : project.status}
+              progress={project.status === "completed" ? 100 : project.status === "planned" ? 0 : 50}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
