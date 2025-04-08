@@ -17,6 +17,70 @@ export interface Project {
   updated_at: string;
 }
 
+// Demo data for when no projects exist in the database
+const demoProjects: Project[] = [
+  {
+    id: "1",
+    name: "Addis Heights Apartments",
+    location: "Addis Ababa, Ethiopia",
+    start_date: "2024-12-01",
+    end_date: "2025-09-30",
+    budget: 5500000,
+    status: "in_progress",
+    client: "Addis Development Corp",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "2",
+    name: "Mekelle Office Complex",
+    location: "Mekelle, Tigray",
+    start_date: "2025-05-15",
+    end_date: null,
+    budget: 3200000,
+    status: "planned",
+    client: "Tigray Business Group",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "3", 
+    name: "Hawassa Resort Extension",
+    location: "Hawassa, SNNPR",
+    start_date: "2024-08-10",
+    end_date: "2025-02-28",
+    budget: 1800000,
+    status: "completed",
+    client: "Southern Tourism Ltd",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "4",
+    name: "Blue Nile Bridge Repair",
+    location: "Bahir Dar, Amhara",
+    start_date: "2024-11-15",
+    end_date: "2025-06-30",
+    budget: 850000,
+    status: "on_hold",
+    client: "Ethiopian Roads Authority",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "5",
+    name: "Dire Dawa Commercial Center",
+    location: "Dire Dawa",
+    start_date: "2025-03-01",
+    end_date: "2026-04-30",
+    budget: 4100000,
+    status: "planned",
+    client: "Eastern Developers Ltd",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+];
+
 export function useProjects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,6 +98,13 @@ export function useProjects() {
           
         if (error) {
           throw error;
+        }
+        
+        // If no data is returned, use demo data
+        if (!data || data.length === 0) {
+          console.log("No projects found in the database. Using demo data.");
+          setProjects(demoProjects);
+          return;
         }
         
         // Map the data from Supabase to ensure the status matches our Project interface
@@ -68,12 +139,16 @@ export function useProjects() {
         
         setProjects(typedProjects);
       } catch (err: any) {
+        console.error("Error fetching projects:", err);
         setError(err);
         toast({
           title: "Error fetching projects",
-          description: err.message,
+          description: "Using demo data instead",
           variant: "destructive",
         });
+        
+        // Use demo data as fallback
+        setProjects(demoProjects);
       } finally {
         setLoading(false);
       }

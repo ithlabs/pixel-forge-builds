@@ -1,4 +1,3 @@
-
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
 import { Building2, CircleDollarSign, Clock, ShoppingCart, Users } from "lucide-react";
@@ -6,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProjectCard } from "@/components/ProjectCard";
 import { useProjects } from "@/hooks/useProjects";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, mapProjectStatusToCardStatus } from "@/lib/formatters";
 
 const Dashboard = () => {
   const { projects, loading } = useProjects();
@@ -131,21 +130,6 @@ const Dashboard = () => {
     );
   }
 
-  // Map project statuses to the expected ProjectCard status type
-  const mapStatusToProjectCardStatus = (status: string): "completed" | "planned" | "on_hold" | "ongoing" => {
-    switch (status) {
-      case "completed":
-        return "completed";
-      case "in_progress":
-        return "ongoing";
-      case "on_hold":
-        return "on_hold";
-      case "planned":
-      default:
-        return "planned";
-    }
-  };
-
   // Format projects for display
   const activeProjects = projects
     .filter(project => project.status === "in_progress")
@@ -165,7 +149,7 @@ const Dashboard = () => {
         day: 'numeric'
       }) : "Not set",
       budget: project.budget ? formatCurrency(project.budget) : "Not set",
-      status: mapStatusToProjectCardStatus(project.status),
+      status: mapProjectStatusToCardStatus(project.status),
       progress: project.status === "in_progress" ? Math.floor(Math.random() * 80) + 10 : 
                project.status === "completed" ? 100 : 0
     }));

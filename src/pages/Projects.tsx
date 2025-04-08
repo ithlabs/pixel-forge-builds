@@ -6,26 +6,20 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProjects } from "@/hooks/useProjects";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, mapProjectStatusToCardStatus } from "@/lib/formatters";
 import { Plus, Search } from "lucide-react";
+import { useState } from "react";
 
 const Projects = () => {
   const { projects, loading } = useProjects();
-
-  // Map project statuses to the expected ProjectCard status type
-  const mapStatusToProjectCardStatus = (status: string): "completed" | "planned" | "on_hold" | "ongoing" => {
-    switch (status) {
-      case "completed":
-        return "completed";
-      case "in_progress":
-        return "ongoing";
-      case "on_hold":
-        return "on_hold";
-      case "planned":
-      default:
-        return "planned";
-    }
-  };
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  // Filter projects based on search query
+  const filteredProjects = projects.filter(project => 
+    project.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    project.location?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    project.client.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div>
@@ -48,6 +42,8 @@ const Projects = () => {
             <Input 
               placeholder="Search projects..." 
               className="pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           <div className="flex gap-2">
@@ -79,19 +75,30 @@ const Projects = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map(project => (
-            <ProjectCard 
-              key={project.id}
-              id={project.id}
-              name={project.name}
-              location={project.location || ""}
-              startDate={project.start_date ? new Date(project.start_date).toLocaleDateString() : "TBD"}
-              endDate={project.end_date ? new Date(project.end_date).toLocaleDateString() : "TBD"}
-              budget={project.budget ? formatCurrency(project.budget) : "Not set"}
-              status={mapStatusToProjectCardStatus(project.status)}
-              progress={project.status === "completed" ? 100 : project.status === "planned" ? 0 : 50}
-            />
-          ))}
+          {filteredProjects.length > 0 ? (
+            filteredProjects.map(project => (
+              <ProjectCard 
+                key={project.id}
+                id={project.id}
+                name={project.name}
+                location={project.location || "No location set"}
+                startDate={project.start_date ? new Date(project.start_date).toLocaleDateString() : "TBD"}
+                endDate={project.end_date ? new Date(project.end_date).toLocaleDateString() : "TBD"}
+                budget={project.budget ? formatCurrency(project.budget) : "Not set"}
+                status={mapProjectStatusToCardStatus(project.status)}
+                progress={
+                  project.status === "completed" ? 100 : 
+                  project.status === "planned" ? 0 : 
+                  project.status === "in_progress" ? 65 :
+                  project.status === "on_hold" ? 30 : 50
+                }
+              />
+            ))
+          ) : (
+            <div className="col-span-full text-center py-8">
+              <p className="text-gray-500">No projects found. Try adjusting your search.</p>
+            </div>
+          )}
         </div>
       )}
     </div>
