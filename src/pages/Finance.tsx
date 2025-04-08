@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { CircleDollarSign, FileText, Plus } from "lucide-react";
+import { CircleDollarSign, FileText, Plus, Loader2 } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -17,43 +17,86 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { useFinance } from "@/hooks/useFinance";
+import { formatCurrency, formatDate, formatStatusColor } from "@/lib/formatters";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Finance = () => {
-  // Mock data for expenses chart
-  const expensesData = [
-    { month: "Jan", materials: 35000, labor: 25000, equipment: 15000 },
-    { month: "Feb", materials: 42000, labor: 28000, equipment: 12000 },
-    { month: "Mar", materials: 38000, labor: 30000, equipment: 18000 },
-    { month: "Apr", materials: 45000, labor: 32000, equipment: 20000 },
-    { month: "May", materials: 50000, labor: 35000, equipment: 22000 },
-    { month: "Jun", materials: 48000, labor: 33000, equipment: 19000 },
-  ];
+  const { expenses, invoices, expensesData, expensesByCategory, loading } = useFinance();
 
-  // Mock data for expenses by category
-  const expensesByCategory = [
-    { name: "Materials", value: 258000, color: "#1a365d" },
-    { name: "Labor", value: 183000, color: "#ed8936" },
-    { name: "Equipment", value: 106000, color: "#ecc94b" },
-    { name: "Others", value: 42000, color: "#4a5568" },
-  ];
+  // Render loading skeletons if data is still loading
+  if (loading) {
+    return (
+      <div>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+          <div className="mb-4 md:mb-0">
+            <Skeleton className="h-8 w-40 mb-2" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+          <div className="flex space-x-3">
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+        </div>
 
-  // Mock data for recent expenses
-  const recentExpenses = [
-    { id: 1, project: "Addis Heights Apartments", category: "Materials", amount: 15000, date: "Apr 05, 2025", description: "Cement purchase" },
-    { id: 2, project: "Mekelle Office Complex", category: "Labor", amount: 8500, date: "Apr 04, 2025", description: "Weekly labor payment" },
-    { id: 3, project: "Dire Dawa Bridge", category: "Equipment", amount: 12000, date: "Apr 03, 2025", description: "Excavator rental" },
-    { id: 4, project: "Addis Heights Apartments", category: "Materials", amount: 6500, date: "Apr 02, 2025", description: "Steel reinforcement" },
-    { id: 5, project: "Mekelle Office Complex", category: "Others", amount: 3200, date: "Apr 01, 2025", description: "Site security expenses" },
-  ];
+        <Tabs defaultValue="expenses" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="expenses">Expenses</TabsTrigger>
+            <TabsTrigger value="invoices">Invoices</TabsTrigger>
+            <TabsTrigger value="payments">Payments</TabsTrigger>
+            <TabsTrigger value="reports">Reports</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="expenses" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="col-span-1 md:col-span-2">
+                <CardHeader>
+                  <Skeleton className="h-6 w-40 mb-2" />
+                  <Skeleton className="h-4 w-60" />
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px] flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                </CardContent>
+              </Card>
 
-  // Mock data for invoices
-  const invoices = [
-    { id: 1, project: "Addis Heights Apartments", client: "Addis Development Corp", amount: 250000, dueDate: "Apr 15, 2025", status: "pending" },
-    { id: 2, project: "Mekelle Office Complex", client: "Tigray Business Group", amount: 180000, dueDate: "Apr 20, 2025", status: "pending" },
-    { id: 3, project: "Bahir Dar Community Center", client: "Amhara Region Council", amount: 120000, dueDate: "Apr 10, 2025", status: "paid" },
-    { id: 4, project: "Dire Dawa Bridge", client: "Ethiopian Roads Authority", amount: 350000, dueDate: "Apr 30, 2025", status: "pending" },
-    { id: 5, project: "Hawassa Resort", client: "Southern Tourism Ltd", amount: 280000, dueDate: "Apr 25, 2025", status: "overdue" },
-  ];
+              <Card>
+                <CardHeader>
+                  <Skeleton className="h-6 w-40 mb-2" />
+                  <Skeleton className="h-4 w-20" />
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px] flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-6 w-40" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {Array(5).fill(0).map((_, i) => (
+                    <div key={i} className="flex justify-between items-center p-3 border-b">
+                      <div className="space-y-2">
+                        <Skeleton className="h-5 w-40" />
+                        <Skeleton className="h-4 w-20" />
+                      </div>
+                      <Skeleton className="h-9 w-16" />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -98,7 +141,7 @@ const Finance = () => {
                       <XAxis dataKey="month" />
                       <YAxis />
                       <Tooltip 
-                        formatter={(value) => [`$${value}`, ""]}
+                        formatter={(value) => [formatCurrency(value as number), ""]}
                         labelFormatter={(label) => `Month: ${label}`}
                       />
                       <Legend />
@@ -134,7 +177,7 @@ const Finance = () => {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value) => `$${value}`} />
+                      <Tooltip formatter={(value) => formatCurrency(value as number)} />
                       <Legend />
                     </PieChart>
                   </ResponsiveContainer>
@@ -161,15 +204,15 @@ const Finance = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {recentExpenses.map((expense, index) => (
+                    {expenses.slice(0, 5).map((expense, index) => (
                       <tr 
                         key={expense.id}
                         className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-muted/20'}`}
                       >
-                        <td className="p-3">{expense.project}</td>
+                        <td className="p-3">{expense.project_name}</td>
                         <td className="p-3">{expense.category}</td>
-                        <td className="p-3 font-medium">${expense.amount.toLocaleString()}</td>
-                        <td className="p-3">{expense.date}</td>
+                        <td className="p-3 font-medium">{formatCurrency(expense.amount)}</td>
+                        <td className="p-3">{formatDate(expense.date)}</td>
                         <td className="p-3">{expense.description}</td>
                         <td className="p-3 text-right">
                           <Button variant="ghost" size="sm">View</Button>
@@ -207,15 +250,13 @@ const Finance = () => {
                         key={invoice.id}
                         className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-muted/20'}`}
                       >
-                        <td className="p-3">{invoice.project}</td>
+                        <td className="p-3">{invoice.project_name}</td>
                         <td className="p-3">{invoice.client}</td>
-                        <td className="p-3 font-medium">${invoice.amount.toLocaleString()}</td>
-                        <td className="p-3">{invoice.dueDate}</td>
+                        <td className="p-3 font-medium">{formatCurrency(invoice.amount)}</td>
+                        <td className="p-3">{formatDate(invoice.due_date)}</td>
                         <td className="p-3">
                           <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                            invoice.status === 'paid' ? 'bg-green-100 text-green-800' : 
-                            invoice.status === 'overdue' ? 'bg-red-100 text-red-800' : 
-                            'bg-amber-100 text-amber-800'
+                            formatStatusColor(invoice.status)
                           }`}>
                             {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
                           </span>
