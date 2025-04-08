@@ -44,7 +44,7 @@ const Dashboard = () => {
 
   const recentProjects = [
     {
-      id: 1,
+      id: "1", // Changed from number to string
       name: "Addis Heights Apartments",
       location: "Bole, Addis Ababa",
       startDate: "Jan 12, 2025",
@@ -54,7 +54,7 @@ const Dashboard = () => {
       progress: 45,
     },
     {
-      id: 2,
+      id: "2", // Changed from number to string
       name: "Mekelle Office Complex",
       location: "Mekelle, Tigray",
       startDate: "Mar 01, 2025",
@@ -64,7 +64,7 @@ const Dashboard = () => {
       progress: 28,
     },
     {
-      id: 3,
+      id: "3", // Changed from number to string
       name: "Hawassa Resort",
       location: "Hawassa, SNNPR",
       startDate: "May 15, 2025",
