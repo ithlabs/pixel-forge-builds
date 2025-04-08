@@ -131,6 +131,21 @@ const Dashboard = () => {
     );
   }
 
+  // Map project statuses to the expected ProjectCard status type
+  const mapStatusToProjectCardStatus = (status: string): "completed" | "planned" | "on_hold" | "ongoing" => {
+    switch (status) {
+      case "completed":
+        return "completed";
+      case "in_progress":
+        return "ongoing";
+      case "on_hold":
+        return "on_hold";
+      case "planned":
+      default:
+        return "planned";
+    }
+  };
+
   // Format projects for display
   const activeProjects = projects
     .filter(project => project.status === "in_progress")
@@ -150,7 +165,7 @@ const Dashboard = () => {
         day: 'numeric'
       }) : "Not set",
       budget: project.budget ? formatCurrency(project.budget) : "Not set",
-      status: project.status === "in_progress" ? "ongoing" : project.status,
+      status: mapStatusToProjectCardStatus(project.status),
       progress: project.status === "in_progress" ? Math.floor(Math.random() * 80) + 10 : 
                project.status === "completed" ? 100 : 0
     }));

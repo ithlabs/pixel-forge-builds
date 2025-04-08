@@ -12,6 +12,21 @@ import { Plus, Search } from "lucide-react";
 const Projects = () => {
   const { projects, loading } = useProjects();
 
+  // Map project statuses to the expected ProjectCard status type
+  const mapStatusToProjectCardStatus = (status: string): "completed" | "planned" | "on_hold" | "ongoing" => {
+    switch (status) {
+      case "completed":
+        return "completed";
+      case "in_progress":
+        return "ongoing";
+      case "on_hold":
+        return "on_hold";
+      case "planned":
+      default:
+        return "planned";
+    }
+  };
+
   return (
     <div>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
@@ -73,7 +88,7 @@ const Projects = () => {
               startDate={project.start_date ? new Date(project.start_date).toLocaleDateString() : "TBD"}
               endDate={project.end_date ? new Date(project.end_date).toLocaleDateString() : "TBD"}
               budget={project.budget ? formatCurrency(project.budget) : "Not set"}
-              status={project.status === "in_progress" ? "ongoing" : project.status === "on_hold" ? "planned" : project.status}
+              status={mapStatusToProjectCardStatus(project.status)}
               progress={project.status === "completed" ? 100 : project.status === "planned" ? 0 : 50}
             />
           ))}

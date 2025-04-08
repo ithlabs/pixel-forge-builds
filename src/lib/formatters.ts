@@ -37,3 +37,17 @@ export function formatStatusColor(status: string): string {
       return 'bg-gray-100 text-gray-800';
   }
 }
+
+export function mapProjectStatusToCardStatus(status: string): "ongoing" | "completed" | "planned" | "on_hold" {
+  switch (status) {
+    case "completed":
+      return "completed";
+    case "in_progress":
+      return "ongoing";
+    case "on_hold":
+      return "on_hold";
+    case "planned":
+    default:
+      return "planned";
+  }
+}
