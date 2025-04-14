@@ -135,6 +135,7 @@ export type Database = {
           start_date: string | null
           status: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           budget?: number | null
@@ -147,6 +148,7 @@ export type Database = {
           start_date?: string | null
           status: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           budget?: number | null
@@ -159,6 +161,7 @@ export type Database = {
           start_date?: string | null
           status?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }

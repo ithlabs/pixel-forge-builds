@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { Database } from '@/integrations/supabase/types';
@@ -86,76 +86,76 @@ export function useProjects() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   
-  useEffect(() => {
-    async function fetchProjects() {
-      try {
-        setLoading(true);
+  const fetchProjects = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false });
         
-        const { data, error } = await supabase
-          .from('projects')
-          .select('*')
-          .order('created_at', { ascending: false });
-          
-        if (error) {
-          throw error;
-        }
-        
-        // If no data is returned, use demo data
-        if (!data || data.length === 0) {
-          console.log("No projects found in the database. Using demo data.");
-          setProjects(demoProjects);
-          return;
-        }
-        
-        // Map the data from Supabase to ensure the status matches our Project interface
-        const typedProjects: Project[] = (data || []).map(project => {
-          // Validate and convert the status to our expected type
-          let status: "planned" | "in_progress" | "completed" | "on_hold";
-          
-          switch (project.status) {
-            case "planned":
-              status = "planned";
-              break;
-            case "in_progress":
-              status = "in_progress";
-              break;
-            case "completed":
-              status = "completed";
-              break;
-            case "on_hold":
-              status = "on_hold";
-              break;
-            default:
-              // Default to "planned" if we get an unexpected status
-              status = "planned";
-              console.warn(`Unexpected project status: ${project.status}`);
-          }
-          
-          return {
-            ...project,
-            status: status
-          };
-        });
-        
-        setProjects(typedProjects);
-      } catch (err: any) {
-        console.error("Error fetching projects:", err);
-        setError(err);
-        toast({
-          title: "Error fetching projects",
-          description: "Using demo data instead",
-          variant: "destructive",
-        });
-        
-        // Use demo data as fallback
-        setProjects(demoProjects);
-      } finally {
-        setLoading(false);
+      if (error) {
+        throw error;
       }
+      
+      // If no data is returned, use demo data
+      if (!data || data.length === 0) {
+        console.log("No projects found in the database. Using demo data.");
+        setProjects(demoProjects);
+        return;
+      }
+      
+      // Map the data from Supabase to ensure the status matches our Project interface
+      const typedProjects: Project[] = (data || []).map(project => {
+        // Validate and convert the status to our expected type
+        let status: "planned" | "in_progress" | "completed" | "on_hold";
+        
+        switch (project.status) {
+          case "planned":
+            status = "planned";
+            break;
+          case "in_progress":
+            status = "in_progress";
+            break;
+          case "completed":
+            status = "completed";
+            break;
+          case "on_hold":
+            status = "on_hold";
+            break;
+          default:
+            // Default to "planned" if we get an unexpected status
+            status = "planned";
+            console.warn(`Unexpected project status: ${project.status}`);
+        }
+        
+        return {
+          ...project,
+          status: status
+        };
+      });
+      
+      setProjects(typedProjects);
+    } catch (err: any) {
+      console.error("Error fetching projects:", err);
+      setError(err);
+      toast({
+        title: "Error fetching projects",
+        description: "Using demo data instead",
+        variant: "destructive",
+      });
+      
+      // Use demo data as fallback
+      setProjects(demoProjects);
+    } finally {
+      setLoading(false);
     }
-    
-    fetchProjects();
   }, []);
   
-  return { projects, loading, error };
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
+  
+  return { projects, loading, error, refetch: fetchProjects };
 }

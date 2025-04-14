@@ -9,10 +9,18 @@ import { useProjects } from "@/hooks/useProjects";
 import { formatCurrency, mapProjectStatusToCardStatus } from "@/lib/formatters";
 import { Plus, Search } from "lucide-react";
 import { useState } from "react";
+import { 
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogHeader
+} from "@/components/ui/dialog";
+import NewProjectForm from "@/components/NewProjectForm";
 
 const Projects = () => {
-  const { projects, loading } = useProjects();
+  const { projects, loading, refetch } = useProjects();
   const [searchQuery, setSearchQuery] = useState("");
+  const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
   
   // Filter projects based on search query
   const filteredProjects = projects.filter(project => 
@@ -20,6 +28,11 @@ const Projects = () => {
     project.location?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     project.client.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleProjectCreated = () => {
+    setShowNewProjectDialog(false);
+    refetch();
+  };
 
   return (
     <div>
@@ -29,7 +42,10 @@ const Projects = () => {
           description="Manage your construction projects"
           className="mb-4 md:mb-0"
         />
-        <Button className="bg-construction-orange hover:bg-construction-orange/90">
+        <Button 
+          className="bg-construction-orange hover:bg-construction-orange/90"
+          onClick={() => setShowNewProjectDialog(true)}
+        >
           <Plus className="h-4 w-4 mr-2" />
           New Project
         </Button>
@@ -101,6 +117,18 @@ const Projects = () => {
           )}
         </div>
       )}
+
+      <Dialog open={showNewProjectDialog} onOpenChange={setShowNewProjectDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Create New Project</DialogTitle>
+          </DialogHeader>
+          <NewProjectForm 
+            onSuccess={handleProjectCreated} 
+            onCancel={() => setShowNewProjectDialog(false)} 
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
