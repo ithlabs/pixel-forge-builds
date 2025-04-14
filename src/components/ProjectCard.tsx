@@ -4,6 +4,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface ProjectCardProps {
   id: string;
@@ -26,6 +27,18 @@ export const ProjectCard = ({
   status,
   progress,
 }: ProjectCardProps) => {
+  const navigate = useNavigate();
+
+  const handleDetailsClick = () => {
+    // Navigate to project details page
+    navigate(`/projects/${id}`);
+  };
+
+  const handleManageClick = () => {
+    // Navigate to project management page
+    navigate(`/projects/${id}/manage`);
+  };
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="border-b bg-muted/20 p-4">
@@ -77,8 +90,8 @@ export const ProjectCard = ({
         </div>
       </CardContent>
       <CardFooter className="border-t p-3 flex justify-end gap-2 bg-muted/20">
-        <Button variant="outline" size="sm">Details</Button>
-        <Button variant="default" size="sm" className="bg-construction-navy hover:bg-construction-navy/90">
+        <Button variant="outline" size="sm" onClick={handleDetailsClick}>Details</Button>
+        <Button variant="default" size="sm" className="bg-construction-navy hover:bg-construction-navy/90" onClick={handleManageClick}>
           Manage
         </Button>
       </CardFooter>
