@@ -89,6 +89,7 @@ export function useProjects() {
   const fetchProjects = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       
       const { data, error } = await supabase
         .from('projects')
@@ -142,7 +143,7 @@ export function useProjects() {
       setError(err);
       toast({
         title: "Error fetching projects",
-        description: "Using demo data instead",
+        description: err.message || "An unexpected error occurred",
         variant: "destructive",
       });
       
@@ -155,6 +156,24 @@ export function useProjects() {
   
   useEffect(() => {
     fetchProjects();
+    
+    // Set up a real-time subscription for projects table
+    const projectsSubscription = supabase
+      .channel('projects-changes')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'projects' 
+      }, () => {
+        console.log('Projects table changed, refreshing data...');
+        fetchProjects();
+      })
+      .subscribe();
+    
+    // Clean up subscription when component unmounts
+    return () => {
+      supabase.removeChannel(projectsSubscription);
+    };
   }, [fetchProjects]);
   
   return { projects, loading, error, refetch: fetchProjects };
