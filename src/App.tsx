@@ -26,13 +26,13 @@ const App = () => (
         <Routes>
           <Route path="/" element={<MainLayout />}>
             <Route index element={<Dashboard />} />
-            <Route path="/projects" element={<Projects />} />
-            <Route path="/projects/:id" element={<ProjectDetails />} />
-            <Route path="/projects/:id/manage" element={<ProjectManage />} />
-            <Route path="/workers" element={<Workers />} />
-            <Route path="/inventory" element={<Inventory />} />
-            <Route path="/finance" element={<Finance />} />
-            <Route path="/reports" element={<Reports />} />
+            <Route path="projects" element={<Projects />} />
+            <Route path="projects/:id" element={<ProjectDetails />} />
+            <Route path="projects/:id/manage" element={<ProjectManage />} />
+            <Route path="workers" element={<Workers />} />
+            <Route path="inventory" element={<Inventory />} />
+            <Route path="finance" element={<Finance />} />
+            <Route path="reports" element={<Reports />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

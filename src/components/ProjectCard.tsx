@@ -30,12 +30,12 @@ export const ProjectCard = ({
   const navigate = useNavigate();
 
   const handleDetailsClick = () => {
-    // Navigate to project details page
+    console.log(`Navigating to project details: /projects/${id}`);
     navigate(`/projects/${id}`);
   };
 
   const handleManageClick = () => {
-    // Navigate to project management page
+    console.log(`Navigating to project management: /projects/${id}/manage`);
     navigate(`/projects/${id}/manage`);
   };
 
@@ -91,7 +91,12 @@ export const ProjectCard = ({
       </CardContent>
       <CardFooter className="border-t p-3 flex justify-end gap-2 bg-muted/20">
         <Button variant="outline" size="sm" onClick={handleDetailsClick}>Details</Button>
-        <Button variant="default" size="sm" className="bg-construction-navy hover:bg-construction-navy/90" onClick={handleManageClick}>
+        <Button 
+          variant="default" 
+          size="sm" 
+          className="bg-construction-navy hover:bg-construction-navy/90" 
+          onClick={handleManageClick}
+        >
           Manage
         </Button>
       </CardFooter>
