@@ -2,7 +2,7 @@
 import React from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { WorkerForm, WorkerFormValues } from "@/components/WorkerForm";
-import { useProjectOperations } from "@/hooks/useProjectOperations";
+import { useWorkerOperations } from "@/hooks/useWorkerOperations";
 import { supabase } from "@/integrations/supabase/client";
 import { toast as sonnerToast } from "sonner";
 
@@ -22,7 +22,7 @@ interface EditWorkerDialogProps {
 }
 
 export function EditWorkerDialog({ worker, open, onOpenChange, onWorkerUpdated }: EditWorkerDialogProps) {
-  const { updateTeamMember, loading } = useProjectOperations();
+  const { updateTeamMember } = useWorkerOperations();
   const [isUpdating, setIsUpdating] = React.useState(false);
 
   const handleSubmit = async (data: WorkerFormValues) => {

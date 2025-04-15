@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { User, Phone, CreditCard, Trash2, Edit } from "lucide-react";
 import { EditWorkerDialog } from "./EditWorkerDialog";
 import { WorkerDetailsDialog } from "./WorkerDetailsDialog";
-import { useProjectOperations } from "@/hooks/useProjectOperations";
+import { useWorkerOperations } from "@/hooks/useWorkerOperations";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,7 +42,7 @@ export const WorkerCard = ({
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   
-  const { deleteTeamMember, loading } = useProjectOperations();
+  const { deleteTeamMember, loading } = useWorkerOperations();
 
   const handleDelete = async () => {
     const success = await deleteTeamMember(id);

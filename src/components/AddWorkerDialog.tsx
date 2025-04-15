@@ -4,8 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { WorkerForm, WorkerFormValues } from "@/components/WorkerForm";
-import { supabase } from "@/integrations/supabase/client";
-import { toast as sonnerToast } from "sonner";
+import { useWorkerOperations } from "@/hooks/useWorkerOperations";
 
 interface AddWorkerDialogProps {
   onWorkerAdded: () => void;
@@ -13,47 +12,15 @@ interface AddWorkerDialogProps {
 
 export function AddWorkerDialog({ onWorkerAdded }: AddWorkerDialogProps) {
   const [open, setOpen] = React.useState(false);
-  const [isAdding, setIsAdding] = React.useState(false);
+  const { addWorker, loading } = useWorkerOperations();
 
   const handleSubmit = async (data: WorkerFormValues) => {
-    setIsAdding(true);
-    try {
-      console.log("Adding worker:", {
-        name: data.name,
-        role: data.role,
-        phone: data.phone || null,
-        rate_per_day: parseFloat(data.ratePerDay),
-        type: data.type,
-      });
-      
-      // Insert directly to Supabase
-      const { data: workerData, error } = await supabase
-        .from('workers')
-        .insert({
-          name: data.name,
-          role: data.role,
-          phone: data.phone || null,
-          rate_per_day: parseFloat(data.ratePerDay),
-          type: data.type,
-        })
-        .select()
-        .single();
-      
-      if (error) {
-        throw error;
-      }
-      
-      sonnerToast.success("Worker added successfully");
+    const success = await addWorker(data);
+    if (success) {
       setOpen(false);
       onWorkerAdded();
-      return true;
-    } catch (error) {
-      console.error("Error adding worker:", error);
-      sonnerToast.error("Failed to add worker");
-      return false;
-    } finally {
-      setIsAdding(false);
     }
+    return success;
   };
 
   return (
@@ -71,7 +38,7 @@ export function AddWorkerDialog({ onWorkerAdded }: AddWorkerDialogProps) {
             Enter the worker details below to add them to your workforce.
           </DialogDescription>
         </DialogHeader>
-        <WorkerForm onSubmit={handleSubmit} isLoading={isAdding} />
+        <WorkerForm onSubmit={handleSubmit} isLoading={loading} />
       </DialogContent>
     </Dialog>
   );

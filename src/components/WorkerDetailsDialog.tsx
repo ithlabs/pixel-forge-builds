@@ -7,7 +7,7 @@ import { Phone, CreditCard, Building, Calendar, Briefcase } from "lucide-react";
 
 interface WorkerDetailsDialogProps {
   worker: {
-    id: number;
+    id: string;
     name: string;
     role: string;
     phone: string;

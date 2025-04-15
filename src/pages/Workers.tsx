@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { WorkerCard } from "@/components/WorkerCard";
@@ -51,7 +50,7 @@ const Workers = () => {
     } catch (error) {
       console.error("Error fetching workers:", error);
       // Fallback to mock data if needed
-      const mockWorkers = [
+      const mockWorkers: Worker[] = [
         {
           id: "1",
           name: "Abebe Kebede",
@@ -59,52 +58,52 @@ const Workers = () => {
           phone: "+251 91 234 5678",
           ratePerDay: "$45",
           projectName: "Addis Heights Apartments",
-          type: "permanent" as const,
+          type: "permanent",
         },
         {
-          id: 2,
+          id: "2",
           name: "Sara Haile",
           role: "Foreman",
           phone: "+251 92 345 6789",
           ratePerDay: "$35",
           projectName: "Mekelle Office Complex",
-          type: "permanent" as const,
+          type: "permanent",
         },
         {
-          id: 3,
+          id: "3",
           name: "Dawit Teshome",
           role: "Electrician",
           phone: "+251 93 456 7890",
           ratePerDay: "$28",
           projectName: "Addis Heights Apartments",
-          type: "contract" as const,
+          type: "contract",
         },
         {
-          id: 4,
+          id: "4",
           name: "Tigist Alemu",
           role: "Plumber",
           phone: "+251 94 567 8901",
           ratePerDay: "$25",
           projectName: "Mekelle Office Complex",
-          type: "contract" as const,
+          type: "contract",
         },
         {
-          id: 5,
+          id: "5",
           name: "Haile Gebrselassie",
           role: "Laborer",
           phone: "+251 95 678 9012",
           ratePerDay: "$15",
           projectName: "Addis Heights Apartments",
-          type: "daily" as const,
+          type: "daily",
         },
         {
-          id: 6,
+          id: "6",
           name: "Meron Bekele",
           role: "Painter",
           phone: "+251 96 789 0123",
           ratePerDay: "$20",
           projectName: "Dire Dawa Bridge",
-          type: "daily" as const,
+          type: "daily",
         },
       ];
       
