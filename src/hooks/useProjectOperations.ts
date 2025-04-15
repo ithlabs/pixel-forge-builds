@@ -106,12 +106,12 @@ export function useProjectOperations() {
       console.log("Updating team member:", id, data);
       
       // Simulate success
-      sonnerToast.success("Team member updated successfully");
+      sonnerToast.success("Worker updated successfully");
       return true;
     } catch (error: any) {
       console.error("Error updating team member:", error);
       toast({
-        title: "Error updating team member",
+        title: "Error updating worker",
         description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
@@ -128,12 +128,35 @@ export function useProjectOperations() {
       console.log("Deleting team member:", id);
       
       // Simulate success
-      sonnerToast.success("Team member removed successfully");
+      sonnerToast.success("Worker removed successfully");
       return true;
     } catch (error: any) {
       console.error("Error deleting team member:", error);
       toast({
-        title: "Error removing team member",
+        title: "Error removing worker",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Worker operations
+  const addWorker = async (data: any) => {
+    setLoading(true);
+    try {
+      // In a real implementation, this would be an actual database call
+      console.log("Adding worker:", data);
+      
+      // Simulate success
+      sonnerToast.success("Worker added successfully");
+      return true;
+    } catch (error: any) {
+      console.error("Error adding worker:", error);
+      toast({
+        title: "Error adding worker",
         description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
@@ -197,6 +220,7 @@ export function useProjectOperations() {
     deleteMaterial,
     updateTeamMember,
     deleteTeamMember,
+    addWorker,
     updateProject,
     updateBudget,
   };
