@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogFooter } from "@/components/ui/dialog";
+import { useProjectOperations } from "@/hooks/useProjectOperations";
 
 const ProjectManage = () => {
   const { id } = useParams();
@@ -35,34 +36,51 @@ const ProjectManage = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("schedule");
   const [showTaskDialog, setShowTaskDialog] = useState(false);
+  const [showTaskEditDialog, setShowTaskEditDialog] = useState(false);
   const [showMaterialDialog, setShowMaterialDialog] = useState(false);
+  const [showMaterialEditDialog, setShowMaterialEditDialog] = useState(false);
   const [showTeamDialog, setShowTeamDialog] = useState(false);
+  const [showTeamEditDialog, setShowTeamEditDialog] = useState(false);
+  const [showProjectEditDialog, setShowProjectEditDialog] = useState(false);
+  const [currentEditItem, setCurrentEditItem] = useState<any>(null);
+  
+  const {
+    loading: operationLoading,
+    updateTask,
+    deleteTask,
+    updateMaterial,
+    deleteMaterial,
+    updateTeamMember,
+    deleteTeamMember,
+    updateProject,
+    updateBudget
+  } = useProjectOperations();
   
   const project = projects.find(p => p.id === id);
   
   // Sample data for demonstration purposes
-  const tasks = [
+  const [tasks, setTasks] = useState([
     { id: "1", name: "Site preparation", status: "completed", assignee: "Dawit Bekele", dueDate: "2024-05-15" },
     { id: "2", name: "Foundation work", status: "in_progress", assignee: "Eyob Mekonnen", dueDate: "2024-06-30" },
     { id: "3", name: "Framing", status: "planned", assignee: "Unassigned", dueDate: "2024-07-20" },
     { id: "4", name: "Electrical wiring", status: "planned", assignee: "Selam Tesfaye", dueDate: "2024-08-10" },
-  ];
+  ]);
   
-  const materials = [
+  const [materials, setMaterials] = useState([
     { id: "1", name: "Cement", quantity: "250 bags", cost: 125000, status: "delivered" },
     { id: "2", name: "Steel bars", quantity: "2 tons", cost: 180000, status: "ordered" },
     { id: "3", name: "Timber", quantity: "50 pieces", cost: 75000, status: "pending" },
     { id: "4", name: "Bricks", quantity: "5000 units", cost: 50000, status: "delivered" },
-  ];
+  ]);
   
-  const team = [
+  const [team, setTeam] = useState([
     { id: "1", name: "Dawit Bekele", role: "Site Manager", type: "permanent", dailyRate: 1200 },
     { id: "2", name: "Eyob Mekonnen", role: "Civil Engineer", type: "contract", dailyRate: 1500 },
     { id: "3", name: "Selam Tesfaye", role: "Electrician", type: "daily", dailyRate: 800 },
     { id: "4", name: "Abebe Kebede", role: "Mason", type: "daily", dailyRate: 600 },
-  ];
+  ]);
   
-  const budgetData = {
+  const [budgetData, setBudgetData] = useState({
     totalBudget: project?.budget || 0,
     spent: 650000,
     allocated: {
@@ -71,9 +89,18 @@ const ProjectManage = () => {
       equipment: 40000,
     },
     remaining: (project?.budget || 0) - 650000,
-  };
+  });
   
   const taskForm = useForm({
+    defaultValues: {
+      name: "",
+      assignee: "",
+      dueDate: "",
+      status: "planned",
+    }
+  });
+  
+  const taskEditForm = useForm({
     defaultValues: {
       name: "",
       assignee: "",
@@ -91,6 +118,15 @@ const ProjectManage = () => {
     }
   });
   
+  const materialEditForm = useForm({
+    defaultValues: {
+      name: "",
+      quantity: "",
+      cost: "",
+      status: "pending",
+    }
+  });
+  
   const teamForm = useForm({
     defaultValues: {
       name: "",
@@ -100,8 +136,40 @@ const ProjectManage = () => {
     }
   });
   
+  const teamEditForm = useForm({
+    defaultValues: {
+      name: "",
+      role: "",
+      type: "daily",
+      dailyRate: "",
+    }
+  });
+  
+  const projectEditForm = useForm({
+    defaultValues: {
+      name: "",
+      location: "",
+      client: "",
+      startDate: "",
+      endDate: "",
+      budget: "",
+      status: "",
+    }
+  });
+  
+  // Add new item handlers
   const handleAddTask = (data) => {
     console.log("Adding new task:", data);
+    const newTask = {
+      id: `task-${Date.now()}`,
+      name: data.name,
+      assignee: data.assignee,
+      dueDate: data.dueDate,
+      status: data.status
+    };
+    
+    setTasks(prev => [...prev, newTask]);
+    
     toast({
       title: "Task added",
       description: `New task "${data.name}" has been added to the project.`,
@@ -112,6 +180,16 @@ const ProjectManage = () => {
   
   const handleAddMaterial = (data) => {
     console.log("Adding new material:", data);
+    const newMaterial = {
+      id: `material-${Date.now()}`,
+      name: data.name,
+      quantity: data.quantity,
+      cost: parseInt(data.cost) || 0,
+      status: data.status
+    };
+    
+    setMaterials(prev => [...prev, newMaterial]);
+    
     toast({
       title: "Material added",
       description: `${data.quantity} of ${data.name} added to the project.`,
@@ -122,12 +200,179 @@ const ProjectManage = () => {
   
   const handleAddTeamMember = (data) => {
     console.log("Adding new team member:", data);
+    const newTeamMember = {
+      id: `team-${Date.now()}`,
+      name: data.name,
+      role: data.role,
+      type: data.type,
+      dailyRate: parseInt(data.dailyRate) || 0
+    };
+    
+    setTeam(prev => [...prev, newTeamMember]);
+    
     toast({
       title: "Team member added",
       description: `${data.name} (${data.role}) added to the project team.`,
     });
     setShowTeamDialog(false);
     teamForm.reset();
+  };
+  
+  // Edit item handlers
+  const handleEditTask = (task) => {
+    setCurrentEditItem(task);
+    taskEditForm.reset({
+      name: task.name,
+      assignee: task.assignee,
+      dueDate: task.dueDate,
+      status: task.status
+    });
+    setShowTaskEditDialog(true);
+  };
+  
+  const handleSaveTaskEdit = async (data) => {
+    if (!currentEditItem) return;
+    
+    const success = await updateTask(currentEditItem.id, data);
+    
+    if (success) {
+      setTasks(prev => 
+        prev.map(task => 
+          task.id === currentEditItem.id ? { ...task, ...data } : task
+        )
+      );
+      setShowTaskEditDialog(false);
+    }
+  };
+  
+  const handleRemoveTask = async (taskId) => {
+    const success = await deleteTask(taskId);
+    
+    if (success) {
+      setTasks(prev => prev.filter(task => task.id !== taskId));
+    }
+  };
+  
+  const handleEditMaterial = (material) => {
+    setCurrentEditItem(material);
+    materialEditForm.reset({
+      name: material.name,
+      quantity: material.quantity,
+      cost: material.cost.toString(),
+      status: material.status
+    });
+    setShowMaterialEditDialog(true);
+  };
+  
+  const handleSaveMaterialEdit = async (data) => {
+    if (!currentEditItem) return;
+    
+    const formattedData = {
+      ...data,
+      cost: parseInt(data.cost) || 0
+    };
+    
+    const success = await updateMaterial(currentEditItem.id, formattedData);
+    
+    if (success) {
+      setMaterials(prev => 
+        prev.map(material => 
+          material.id === currentEditItem.id ? { ...material, ...formattedData } : material
+        )
+      );
+      setShowMaterialEditDialog(false);
+    }
+  };
+  
+  const handleRemoveMaterial = async (materialId) => {
+    const success = await deleteMaterial(materialId);
+    
+    if (success) {
+      setMaterials(prev => prev.filter(material => material.id !== materialId));
+    }
+  };
+  
+  const handleEditTeamMember = (member) => {
+    setCurrentEditItem(member);
+    teamEditForm.reset({
+      name: member.name,
+      role: member.role,
+      type: member.type,
+      dailyRate: member.dailyRate.toString()
+    });
+    setShowTeamEditDialog(true);
+  };
+  
+  const handleSaveTeamEdit = async (data) => {
+    if (!currentEditItem) return;
+    
+    const formattedData = {
+      ...data,
+      dailyRate: parseInt(data.dailyRate) || 0
+    };
+    
+    const success = await updateTeamMember(currentEditItem.id, formattedData);
+    
+    if (success) {
+      setTeam(prev => 
+        prev.map(member => 
+          member.id === currentEditItem.id ? { ...member, ...formattedData } : member
+        )
+      );
+      setShowTeamEditDialog(false);
+    }
+  };
+  
+  const handleRemoveTeamMember = async (memberId) => {
+    const success = await deleteTeamMember(memberId);
+    
+    if (success) {
+      setTeam(prev => prev.filter(member => member.id !== memberId));
+    }
+  };
+  
+  const handleEditProject = () => {
+    if (!project) return;
+    
+    projectEditForm.reset({
+      name: project.name,
+      location: project.location || "",
+      client: project.client,
+      startDate: project.start_date || "",
+      endDate: project.end_date || "",
+      budget: project.budget ? project.budget.toString() : "",
+      status: project.status
+    });
+    
+    setShowProjectEditDialog(true);
+  };
+  
+  const handleSaveProjectEdit = async (data) => {
+    if (!project) return;
+    
+    const formattedData = {
+      ...data,
+      budget: data.budget ? parseInt(data.budget) : null
+    };
+    
+    const success = await updateProject(project.id, formattedData);
+    
+    if (success) {
+      setShowProjectEditDialog(false);
+    }
+  };
+  
+  const handleUpdateBudget = async () => {
+    if (!project) return;
+    
+    const success = await updateBudget(project.id, budgetData);
+    
+    if (success) {
+      toast({
+        title: "Budget updated",
+        description: "Project budget has been updated successfully.",
+      });
+    }
   };
   
   if (loading) {
@@ -174,12 +419,7 @@ const ProjectManage = () => {
           <Button 
             variant="outline"
             className="bg-construction-navy text-white hover:bg-construction-navy/90"
-            onClick={() => {
-              toast({
-                title: "Project edit not implemented",
-                description: "This functionality will be available in a future update.",
-              });
-            }}
+            onClick={handleEditProject}
           >
             <FileEdit className="h-4 w-4 mr-2" />
             Edit Project
@@ -215,7 +455,10 @@ const ProjectManage = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <h3 className="text-lg font-semibold">Project Schedule</h3>
-              <Button className="bg-construction-orange hover:bg-construction-orange/90">
+              <Button 
+                className="bg-construction-orange hover:bg-construction-orange/90"
+                onClick={handleEditProject}
+              >
                 <Calendar className="h-4 w-4 mr-2" />
                 Update Timeline
               </Button>
@@ -317,7 +560,12 @@ const ProjectManage = () => {
                           <TableCell>{project.start_date ? new Date(project.start_date).toLocaleDateString() : "Not set"}</TableCell>
                           <TableCell><Badge className="bg-green-500">Completed</Badge></TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="sm"><MoreHorizontal className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="sm" onClick={() => toast({
+                              title: "Edit milestone",
+                              description: "Milestone editing will be available in a future update.",
+                            })}>
+                              <FileEdit className="h-4 w-4" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                         <TableRow>
@@ -325,7 +573,12 @@ const ProjectManage = () => {
                           <TableCell>2024-06-30</TableCell>
                           <TableCell><Badge className="bg-blue-500">In Progress</Badge></TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="sm"><MoreHorizontal className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="sm" onClick={() => toast({
+                              title: "Edit milestone",
+                              description: "Milestone editing will be available in a future update.",
+                            })}>
+                              <FileEdit className="h-4 w-4" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                         <TableRow>
@@ -333,7 +586,12 @@ const ProjectManage = () => {
                           <TableCell>2024-08-15</TableCell>
                           <TableCell><Badge className="bg-amber-500">Planned</Badge></TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="sm"><MoreHorizontal className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="sm" onClick={() => toast({
+                              title: "Edit milestone",
+                              description: "Milestone editing will be available in a future update.",
+                            })}>
+                              <FileEdit className="h-4 w-4" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                         <TableRow>
@@ -341,7 +599,12 @@ const ProjectManage = () => {
                           <TableCell>{project.end_date ? new Date(project.end_date).toLocaleDateString() : "Not set"}</TableCell>
                           <TableCell><Badge className="bg-amber-500">Planned</Badge></TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="sm"><MoreHorizontal className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="sm" onClick={() => toast({
+                              title: "Edit milestone",
+                              description: "Milestone editing will be available in a future update.",
+                            })}>
+                              <FileEdit className="h-4 w-4" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       </TableBody>
@@ -396,20 +659,18 @@ const ProjectManage = () => {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="sm" onClick={() => {
-                              toast({
-                                title: "Edit task",
-                                description: "Task editing will be available in a future update.",
-                              });
-                            }}>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleEditTask(task)}
+                            >
                               <FileEdit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => {
-                              toast({
-                                title: "Delete task",
-                                description: "Task deletion will be available in a future update.",
-                              });
-                            }}>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleRemoveTask(task.id)}
+                            >
                               <Trash2 className="h-4 w-4 text-red-500" />
                             </Button>
                           </div>
@@ -466,20 +727,18 @@ const ProjectManage = () => {
                         <TableCell>{formatCurrency(member.dailyRate)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="sm" onClick={() => {
-                              toast({
-                                title: "Edit team member",
-                                description: "Team member editing will be available in a future update.",
-                              });
-                            }}>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleEditTeamMember(member)}
+                            >
                               <FileEdit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => {
-                              toast({
-                                title: "Remove team member",
-                                description: "Team member removal will be available in a future update.",
-                              });
-                            }}>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleRemoveTeamMember(member.id)}
+                            >
                               <Trash2 className="h-4 w-4 text-red-500" />
                             </Button>
                           </div>
@@ -536,20 +795,18 @@ const ProjectManage = () => {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="sm" onClick={() => {
-                              toast({
-                                title: "Edit material",
-                                description: "Material editing will be available in a future update.",
-                              });
-                            }}>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleEditMaterial(material)}
+                            >
                               <FileEdit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => {
-                              toast({
-                                title: "Remove material",
-                                description: "Material removal will be available in a future update.",
-                              });
-                            }}>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleRemoveMaterial(material.id)}
+                            >
                               <Trash2 className="h-4 w-4 text-red-500" />
                             </Button>
                           </div>
@@ -567,7 +824,10 @@ const ProjectManage = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <h3 className="text-lg font-semibold">Project Budget</h3>
-              <Button className="bg-construction-orange hover:bg-construction-orange/90">
+              <Button 
+                className="bg-construction-orange hover:bg-construction-orange/90"
+                onClick={handleUpdateBudget}
+              >
                 <DollarSign className="h-4 w-4 mr-2" />
                 Update Budget
               </Button>
@@ -758,6 +1018,88 @@ const ProjectManage = () => {
         </DialogContent>
       </Dialog>
       
+      {/* Edit Task Dialog */}
+      <Dialog open={showTaskEditDialog} onOpenChange={setShowTaskEditDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Task</DialogTitle>
+          </DialogHeader>
+          <Form {...taskEditForm}>
+            <form onSubmit={taskEditForm.handleSubmit(handleSaveTaskEdit)} className="space-y-4">
+              <FormField
+                control={taskEditForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Task Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter task name" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={taskEditForm.control}
+                name="assignee"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Assignee</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Who's responsible" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={taskEditForm.control}
+                name="dueDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Due Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={taskEditForm.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="planned">Planned</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button variant="outline" type="button" onClick={() => setShowTaskEditDialog(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={operationLoading}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Changes
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
       {/* Add Material Dialog */}
       <Dialog open={showMaterialDialog} onOpenChange={setShowMaterialDialog}>
         <DialogContent className="sm:max-w-[500px]">
@@ -840,6 +1182,88 @@ const ProjectManage = () => {
         </DialogContent>
       </Dialog>
       
+      {/* Edit Material Dialog */}
+      <Dialog open={showMaterialEditDialog} onOpenChange={setShowMaterialEditDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Material</DialogTitle>
+          </DialogHeader>
+          <Form {...materialEditForm}>
+            <form onSubmit={materialEditForm.handleSubmit(handleSaveMaterialEdit)} className="space-y-4">
+              <FormField
+                control={materialEditForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Material Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter material name" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={materialEditForm.control}
+                name="quantity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quantity</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. 50 bags, 2 tons" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={materialEditForm.control}
+                name="cost"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cost</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="Enter cost" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={materialEditForm.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="ordered">Ordered</SelectItem>
+                        <SelectItem value="delivered">Delivered</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button variant="outline" type="button" onClick={() => setShowMaterialEditDialog(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={operationLoading}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Changes
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
       {/* Add Team Member Dialog */}
       <Dialog open={showTeamDialog} onOpenChange={setShowTeamDialog}>
         <DialogContent className="sm:max-w-[500px]">
@@ -915,6 +1339,209 @@ const ProjectManage = () => {
                 <Button type="submit">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Team Member
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Team Member Dialog */}
+      <Dialog open={showTeamEditDialog} onOpenChange={setShowTeamEditDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Team Member</DialogTitle>
+          </DialogHeader>
+          <Form {...teamEditForm}>
+            <form onSubmit={teamEditForm.handleSubmit(handleSaveTeamEdit)} className="space-y-4">
+              <FormField
+                control={teamEditForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter name" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={teamEditForm.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Role</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Site Manager, Engineer" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={teamEditForm.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Employment Type</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="daily">Daily</SelectItem>
+                        <SelectItem value="contract">Contract</SelectItem>
+                        <SelectItem value="permanent">Permanent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={teamEditForm.control}
+                name="dailyRate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Daily Rate</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="Enter daily rate" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button variant="outline" type="button" onClick={() => setShowTeamEditDialog(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={operationLoading}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Changes
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Project Dialog */}
+      <Dialog open={showProjectEditDialog} onOpenChange={setShowProjectEditDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Project</DialogTitle>
+          </DialogHeader>
+          <Form {...projectEditForm}>
+            <form onSubmit={projectEditForm.handleSubmit(handleSaveProjectEdit)} className="space-y-4">
+              <FormField
+                control={projectEditForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter project name" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={projectEditForm.control}
+                name="client"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Client</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter client name" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={projectEditForm.control}
+                name="location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Location</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Project location" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={projectEditForm.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={projectEditForm.control}
+                  name="endDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>End Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={projectEditForm.control}
+                name="budget"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Budget</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="Project budget" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={projectEditForm.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="planned">Planned</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="on_hold">On Hold</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button variant="outline" type="button" onClick={() => setShowProjectEditDialog(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={operationLoading}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Changes
                 </Button>
               </DialogFooter>
             </form>
