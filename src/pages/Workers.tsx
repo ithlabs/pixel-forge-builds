@@ -27,7 +27,30 @@ const Workers = () => {
   const fetchWorkers = async () => {
     setIsLoading(true);
     try {
-      // For now, we'll use mock data, but this would normally fetch from Supabase
+      // Fetch workers from Supabase
+      const { data, error } = await supabase
+        .from('workers')
+        .select('*');
+        
+      if (error) {
+        throw error;
+      }
+      
+      // Transform the workers data to match our UI format
+      const transformedWorkers = data.map(worker => ({
+        id: worker.id,
+        name: worker.name,
+        role: worker.role,
+        phone: worker.phone || "",
+        ratePerDay: `$${worker.rate_per_day}`,
+        type: worker.type as "daily" | "contract" | "permanent",
+      }));
+      
+      console.log("Fetched workers:", transformedWorkers);
+      setWorkers(transformedWorkers);
+    } catch (error) {
+      console.error("Error fetching workers:", error);
+      // Fallback to mock data if needed
       const mockWorkers = [
         {
           id: 1,
@@ -86,8 +109,6 @@ const Workers = () => {
       ];
       
       setWorkers(mockWorkers);
-    } catch (error) {
-      console.error("Error fetching workers:", error);
     } finally {
       setIsLoading(false);
     }
@@ -95,6 +116,24 @@ const Workers = () => {
 
   useEffect(() => {
     fetchWorkers();
+    
+    // Set up a real-time subscription for workers table
+    const workersSubscription = supabase
+      .channel('workers-changes')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'workers' 
+      }, () => {
+        console.log('Workers table changed, refreshing data...');
+        fetchWorkers();
+      })
+      .subscribe();
+    
+    // Clean up subscription when component unmounts
+    return () => {
+      supabase.removeChannel(workersSubscription);
+    };
   }, []);
 
   const filteredWorkers = workers.filter(worker => 

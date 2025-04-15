@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { WorkerForm, WorkerFormValues } from "@/components/WorkerForm";
 import { useProjectOperations } from "@/hooks/useProjectOperations";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AddWorkerDialogProps {
   onWorkerAdded: () => void;
@@ -15,17 +16,38 @@ export function AddWorkerDialog({ onWorkerAdded }: AddWorkerDialogProps) {
   const { addWorker, loading } = useProjectOperations();
 
   const handleSubmit = async (data: WorkerFormValues) => {
-    const success = await addWorker({
-      name: data.name,
-      role: data.role,
-      phone: data.phone || null,
-      rate_per_day: parseFloat(data.ratePerDay),
-      type: data.type,
-    });
-
-    if (success) {
+    try {
+      console.log("Adding worker:", {
+        name: data.name,
+        role: data.role,
+        phone: data.phone || null,
+        rate_per_day: parseFloat(data.ratePerDay),
+        type: data.type,
+      });
+      
+      // Insert directly to Supabase
+      const { data: workerData, error } = await supabase
+        .from('workers')
+        .insert({
+          name: data.name,
+          role: data.role,
+          phone: data.phone || null,
+          rate_per_day: parseFloat(data.ratePerDay),
+          type: data.type,
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        throw error;
+      }
+      
       setOpen(false);
       onWorkerAdded();
+      return true;
+    } catch (error) {
+      console.error("Error adding worker:", error);
+      return false;
     }
   };
 

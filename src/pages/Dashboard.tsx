@@ -1,16 +1,110 @@
+
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
-import { Building2, CircleDollarSign, Clock, ShoppingCart, Users } from "lucide-react";
+import { Building2, CircleDollarSign, ShoppingCart, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProjectCard } from "@/components/ProjectCard";
 import { useProjects } from "@/hooks/useProjects";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, mapProjectStatusToCardStatus } from "@/lib/formatters";
+import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
-  const { projects, loading } = useProjects();
+  const { projects, loading, refetch: refetchProjects } = useProjects();
+  const [workers, setWorkers] = useState<any[]>([]);
+  const [lowMaterials, setLowMaterials] = useState<number>(0);
+  const [workersLoading, setWorkersLoading] = useState(true);
+  const [materialsLoading, setMaterialsLoading] = useState(true);
+  const [upcomingTasks, setUpcomingTasks] = useState([
+    { task: "Site inspection at Addis Heights", date: "Today, 2:00 PM", project: "Addis Heights Apartments" },
+    { task: "Material delivery for foundation", date: "Tomorrow, 9:00 AM", project: "Mekelle Office Complex" },
+    { task: "Worker payroll processing", date: "Apr 10, 2025", project: "All Projects" },
+    { task: "Concrete pouring - Building A", date: "Apr 12, 2025", project: "Addis Heights Apartments" },
+    { task: "Safety equipment inspection", date: "Apr 15, 2025", project: "All Sites" },
+  ]);
+
+  // Fetch workers data
+  const fetchWorkers = async () => {
+    try {
+      setWorkersLoading(true);
+      const { data, error } = await supabase
+        .from('workers')
+        .select('*');
+        
+      if (error) {
+        throw error;
+      }
+      
+      setWorkers(data || []);
+      console.log("Workers fetched:", data);
+    } catch (err) {
+      console.error("Error fetching workers:", err);
+      setWorkers([]);
+    } finally {
+      setWorkersLoading(false);
+    }
+  };
+
+  // Fetch low materials data
+  const fetchLowMaterials = async () => {
+    try {
+      setMaterialsLoading(true);
+      const { data, error } = await supabase
+        .from('inventory_items')
+        .select('*')
+        .lt('quantity', 10);
+        
+      if (error) {
+        throw error;
+      }
+      
+      setLowMaterials(data?.length || 0);
+    } catch (err) {
+      console.error("Error fetching low materials:", err);
+      setLowMaterials(0);
+    } finally {
+      setMaterialsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchWorkers();
+    fetchLowMaterials();
+    
+    // Set up Supabase realtime subscriptions
+    const workersSubscription = supabase
+      .channel('workers-changes')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'workers' 
+      }, () => {
+        console.log('Workers table changed, refreshing data...');
+        fetchWorkers();
+      })
+      .subscribe();
+      
+    const materialsSubscription = supabase
+      .channel('materials-changes')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'inventory_items' 
+      }, () => {
+        console.log('Inventory items changed, refreshing data...');
+        fetchLowMaterials();
+      })
+      .subscribe();
+
+    // Clean up subscriptions
+    return () => {
+      supabase.removeChannel(workersSubscription);
+      supabase.removeChannel(materialsSubscription);
+    };
+  }, []);
   
-  // Mock data for the dashboard stats
+  // Calculate statistics based on real data
   const stats = [
     {
       title: "Active Projects",
@@ -22,7 +116,7 @@ const Dashboard = () => {
     },
     {
       title: "Workers",
-      value: 124,
+      value: workersLoading ? "..." : workers.length,
       description: "Total workers across all sites",
       icon: Users,
       trend: "up" as const, 
@@ -30,7 +124,7 @@ const Dashboard = () => {
     },
     {
       title: "Low Materials",
-      value: 3,
+      value: materialsLoading ? "..." : lowMaterials,
       description: "Materials need restocking",
       icon: ShoppingCart,
       trend: "down" as const,
@@ -48,16 +142,8 @@ const Dashboard = () => {
     },
   ];
 
-  const upcomingTasks = [
-    { task: "Site inspection at Addis Heights", date: "Today, 2:00 PM", project: "Addis Heights Apartments" },
-    { task: "Material delivery for foundation", date: "Tomorrow, 9:00 AM", project: "Mekelle Office Complex" },
-    { task: "Worker payroll processing", date: "Apr 10, 2025", project: "All Projects" },
-    { task: "Concrete pouring - Building A", date: "Apr 12, 2025", project: "Addis Heights Apartments" },
-    { task: "Safety equipment inspection", date: "Apr 15, 2025", project: "All Sites" },
-  ];
-  
   // Show skeletons while loading
-  if (loading) {
+  if (loading || workersLoading || materialsLoading) {
     return (
       <div>
         <PageHeader 
