@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 interface WorkerCardProps {
-  id: number;
+  id: string;
   name: string;
   role: string;
   phone: string;
@@ -46,7 +45,7 @@ export const WorkerCard = ({
   const { deleteTeamMember, loading } = useProjectOperations();
 
   const handleDelete = async () => {
-    const success = await deleteTeamMember(id.toString());
+    const success = await deleteTeamMember(id);
     if (success) {
       setDeleteDialogOpen(false);
       onWorkerUpdated();

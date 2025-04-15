@@ -4,8 +4,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { WorkerForm, WorkerFormValues } from "@/components/WorkerForm";
-import { useProjectOperations } from "@/hooks/useProjectOperations";
 import { supabase } from "@/integrations/supabase/client";
+import { toast as sonnerToast } from "sonner";
 
 interface AddWorkerDialogProps {
   onWorkerAdded: () => void;
@@ -13,9 +13,10 @@ interface AddWorkerDialogProps {
 
 export function AddWorkerDialog({ onWorkerAdded }: AddWorkerDialogProps) {
   const [open, setOpen] = React.useState(false);
-  const { addWorker, loading } = useProjectOperations();
+  const [isAdding, setIsAdding] = React.useState(false);
 
   const handleSubmit = async (data: WorkerFormValues) => {
+    setIsAdding(true);
     try {
       console.log("Adding worker:", {
         name: data.name,
@@ -42,12 +43,16 @@ export function AddWorkerDialog({ onWorkerAdded }: AddWorkerDialogProps) {
         throw error;
       }
       
+      sonnerToast.success("Worker added successfully");
       setOpen(false);
       onWorkerAdded();
       return true;
     } catch (error) {
       console.error("Error adding worker:", error);
+      sonnerToast.error("Failed to add worker");
       return false;
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -66,7 +71,7 @@ export function AddWorkerDialog({ onWorkerAdded }: AddWorkerDialogProps) {
             Enter the worker details below to add them to your workforce.
           </DialogDescription>
         </DialogHeader>
-        <WorkerForm onSubmit={handleSubmit} isLoading={loading} />
+        <WorkerForm onSubmit={handleSubmit} isLoading={isAdding} />
       </DialogContent>
     </Dialog>
   );

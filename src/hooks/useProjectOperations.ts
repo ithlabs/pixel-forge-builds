@@ -124,10 +124,18 @@ export function useProjectOperations() {
   const deleteTeamMember = async (id: string) => {
     setLoading(true);
     try {
-      // In a real implementation, this would be an actual database call
       console.log("Deleting team member:", id);
       
-      // Simulate success
+      // Delete directly from Supabase
+      const { error } = await supabase
+        .from('workers')
+        .delete()
+        .eq('id', id);
+        
+      if (error) {
+        throw error;
+      }
+      
       sonnerToast.success("Worker removed successfully");
       return true;
     } catch (error: any) {

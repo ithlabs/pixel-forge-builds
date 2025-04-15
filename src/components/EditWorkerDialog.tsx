@@ -8,7 +8,7 @@ import { toast as sonnerToast } from "sonner";
 
 interface EditWorkerDialogProps {
   worker: {
-    id: number;
+    id: string;
     name: string;
     role: string;
     phone: string;

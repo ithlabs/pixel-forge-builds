@@ -10,7 +10,7 @@ import { AddWorkerDialog } from "@/components/AddWorkerDialog";
 import { supabase } from "@/integrations/supabase/client";
 
 type Worker = {
-  id: number;
+  id: string;
   name: string;
   role: string;
   phone: string;
@@ -53,7 +53,7 @@ const Workers = () => {
       // Fallback to mock data if needed
       const mockWorkers = [
         {
-          id: 1,
+          id: "1",
           name: "Abebe Kebede",
           role: "Site Engineer",
           phone: "+251 91 234 5678",
