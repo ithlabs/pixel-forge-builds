@@ -22,6 +22,7 @@ export function useProjectOperations() {
     // Material operations
     updateMaterial: materialOps.updateMaterial,
     deleteMaterial: materialOps.deleteMaterial,
+    addMaterial: materialOps.addMaterial,
     
     // Worker operations
     updateTeamMember: workerOps.updateTeamMember,

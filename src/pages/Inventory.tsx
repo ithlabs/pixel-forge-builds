@@ -5,74 +5,56 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
+import { AddMaterialDialog } from "@/components/AddMaterialDialog";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Inventory = () => {
-  // Mock data for materials
-  const materials = [
-    {
-      id: 1,
-      name: "Cement",
-      unit: "Bags",
-      currentStock: 150,
-      criticalLevel: 50,
-    },
-    {
-      id: 2,
-      name: "Sand",
-      unit: "Cubic Meters",
-      currentStock: 35,
-      criticalLevel: 20,
-    },
-    {
-      id: 3,
-      name: "Gravel",
-      unit: "Cubic Meters",
-      currentStock: 45,
-      criticalLevel: 15,
-    },
-    {
-      id: 4,
-      name: "Reinforcement Bars",
-      unit: "Tons",
-      currentStock: 8,
-      criticalLevel: 5,
-    },
-    {
-      id: 5,
-      name: "Bricks",
-      unit: "Pieces",
-      currentStock: 5000,
-      criticalLevel: 1000,
-    },
-    {
-      id: 6,
-      name: "Paint",
-      unit: "Gallons",
-      currentStock: 25,
-      criticalLevel: 30,
-    },
-    {
-      id: 7,
-      name: "Electrical Wire",
-      unit: "Rolls",
-      currentStock: 10,
-      criticalLevel: 15,
-    },
-    {
-      id: 8,
-      name: "PVC Pipes",
-      unit: "Pieces",
-      currentStock: 120,
-      criticalLevel: 50,
-    },
-    {
-      id: 9,
-      name: "Timber",
-      unit: "Cubic Meters",
-      currentStock: 12,
-      criticalLevel: 15,
-    },
-  ];
+  const [materials, setMaterials] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const fetchMaterials = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('inventory_items')
+        .select('*');
+        
+      if (error) {
+        throw error;
+      }
+      
+      // Transform the data to include criticalLevel (mimicking the mock data)
+      const transformedData = data.map(item => ({
+        ...item,
+        id: item.id,
+        name: item.name,
+        unit: item.unit,
+        currentStock: item.quantity,
+        criticalLevel: Math.floor(item.quantity * 0.3), // Setting critical level to 30% of current for demo
+        unitPrice: item.unit_price
+      }));
+      
+      setMaterials(transformedData);
+    } catch (error) {
+      console.error("Error fetching materials:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMaterials();
+  }, []);
+
+  const handleMaterialAdded = () => {
+    fetchMaterials();
+  };
+
+  const filteredMaterials = materials.filter(material => 
+    material.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div>
@@ -82,10 +64,7 @@ const Inventory = () => {
           description="Manage materials, supplies, and procurement"
           className="mb-4 md:mb-0"
         />
-        <Button className="bg-construction-orange hover:bg-construction-orange/90">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Material
-        </Button>
+        <AddMaterialDialog onMaterialAdded={handleMaterialAdded} />
       </div>
       
       <Card className="mb-6 p-4">
@@ -95,6 +74,8 @@ const Inventory = () => {
             <Input 
               placeholder="Search materials..." 
               className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <div className="flex gap-2">
@@ -108,11 +89,20 @@ const Inventory = () => {
         </div>
       </Card>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {materials.map(material => (
-          <MaterialCard key={material.id} {...material} />
-        ))}
-      </div>
+      {loading ? (
+        <div className="text-center py-8">Loading materials...</div>
+      ) : materials.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground mb-4">No materials found. Add your first material to get started.</p>
+          <AddMaterialDialog onMaterialAdded={handleMaterialAdded} />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredMaterials.map(material => (
+            <MaterialCard key={material.id} {...material} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
