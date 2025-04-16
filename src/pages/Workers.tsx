@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { WorkerCard } from "@/components/WorkerCard";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
 import { AddWorkerDialog } from "@/components/AddWorkerDialog";
+import { WorkerSearch } from "@/components/WorkerSearch";
+import { WorkerGrid } from "@/components/WorkerGrid";
 import { supabase } from "@/integrations/supabase/client";
 
 type Worker = {
@@ -153,51 +150,16 @@ const Workers = () => {
         <AddWorkerDialog onWorkerAdded={fetchWorkers} />
       </div>
       
-      <Card className="mb-6 p-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-grow">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input 
-              placeholder="Search workers..." 
-              className="pl-10"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="whitespace-nowrap">
-              Filter
-            </Button>
-            <Button variant="outline" className="whitespace-nowrap">
-              Sort
-            </Button>
-          </div>
-        </div>
-      </Card>
+      <WorkerSearch 
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+      />
       
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3, 4, 5, 6].map((n) => (
-            <Card key={n} className="w-full h-[200px] animate-pulse bg-gray-100"></Card>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredWorkers.length > 0 ? (
-            filteredWorkers.map(worker => (
-              <WorkerCard 
-                key={worker.id} 
-                {...worker} 
-                onWorkerUpdated={fetchWorkers}
-              />
-            ))
-          ) : (
-            <div className="col-span-3 py-8 text-center text-gray-500">
-              No workers found matching your search criteria
-            </div>
-          )}
-        </div>
-      )}
+      <WorkerGrid 
+        workers={filteredWorkers}
+        isLoading={isLoading}
+        onWorkerUpdated={fetchWorkers}
+      />
     </div>
   );
 };
