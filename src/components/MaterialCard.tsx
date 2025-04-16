@@ -2,13 +2,19 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { CircleAlert, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { RestockDialog } from "@/components/RestockDialog";
+import { HistoryDialog } from "@/components/HistoryDialog";
 
 interface MaterialCardProps {
-  id: number;
+  id: number | string;
   name: string;
   unit: string;
   currentStock: number;
   criticalLevel: number;
+  unitPrice: number;
+  category: string;
+  onMaterialUpdated: () => void;
 }
 
 export const MaterialCard = ({
@@ -17,8 +23,13 @@ export const MaterialCard = ({
   unit,
   currentStock,
   criticalLevel,
+  unitPrice,
+  category,
+  onMaterialUpdated,
 }: MaterialCardProps) => {
   const isLow = currentStock <= criticalLevel;
+  const [isRestockOpen, setIsRestockOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   return (
     <Card>
@@ -41,6 +52,11 @@ export const MaterialCard = ({
           <span className="font-medium">{currentStock} {unit}</span>
         </div>
         
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm text-gray-500">Price:</span>
+          <span className="font-medium">${unitPrice.toFixed(2)}/{unit}</span>
+        </div>
+        
         {isLow && (
           <div className="bg-red-50 p-2 rounded-md flex items-center text-sm text-red-700 mb-3">
             <CircleAlert className="h-4 w-4 mr-1" />
@@ -49,12 +65,40 @@ export const MaterialCard = ({
         )}
         
         <div className="flex justify-end gap-2">
-          <Button variant="outline" size="sm">History</Button>
-          <Button variant="default" size="sm" className="bg-construction-navy hover:bg-construction-navy/90">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setIsHistoryOpen(true)}
+          >
+            History
+          </Button>
+          <Button 
+            variant="default" 
+            size="sm" 
+            className="bg-construction-navy hover:bg-construction-navy/90"
+            onClick={() => setIsRestockOpen(true)}
+          >
             Restock
           </Button>
         </div>
       </CardContent>
+      
+      <RestockDialog 
+        open={isRestockOpen}
+        onOpenChange={setIsRestockOpen}
+        materialId={id}
+        materialName={name}
+        currentStock={currentStock}
+        unit={unit}
+        onRestock={onMaterialUpdated}
+      />
+      
+      <HistoryDialog
+        open={isHistoryOpen}
+        onOpenChange={setIsHistoryOpen}
+        materialId={id}
+        materialName={name}
+      />
     </Card>
   );
 };

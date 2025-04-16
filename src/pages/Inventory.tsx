@@ -4,7 +4,7 @@ import { MaterialCard } from "@/components/MaterialCard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Plus, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { AddMaterialDialog } from "@/components/AddMaterialDialog";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,8 +32,9 @@ const Inventory = () => {
         name: item.name,
         unit: item.unit,
         currentStock: item.quantity,
-        criticalLevel: Math.floor(item.quantity * 0.3), // Setting critical level to 30% of current for demo
-        unitPrice: item.unit_price
+        criticalLevel: item.critical_level || Math.floor(item.quantity * 0.3), // Setting critical level to 30% of current for demo
+        unitPrice: item.unit_price,
+        category: item.category
       }));
       
       setMaterials(transformedData);
@@ -49,6 +50,10 @@ const Inventory = () => {
   }, []);
 
   const handleMaterialAdded = () => {
+    fetchMaterials();
+  };
+
+  const handleMaterialUpdated = () => {
     fetchMaterials();
   };
 
@@ -99,7 +104,11 @@ const Inventory = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredMaterials.map(material => (
-            <MaterialCard key={material.id} {...material} />
+            <MaterialCard 
+              key={material.id} 
+              {...material} 
+              onMaterialUpdated={handleMaterialUpdated}
+            />
           ))}
         </div>
       )}

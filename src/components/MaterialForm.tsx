@@ -38,8 +38,17 @@ export function MaterialForm({ onSubmit, isLoading, initialData }: MaterialFormP
     e.preventDefault();
     setSubmitting(true);
     try {
-      await onSubmit(formData);
-    } finally {
+      // Set default critical level if not provided
+      if (!formData.criticalLevel) {
+        formData.criticalLevel = Math.floor(Number(formData.quantity) * 0.3);
+      }
+      
+      const success = await onSubmit(formData);
+      if (!success) {
+        setSubmitting(false);
+      }
+    } catch (error) {
+      console.error("Error in form submission:", error);
       setSubmitting(false);
     }
   };
@@ -136,9 +145,11 @@ export function MaterialForm({ onSubmit, isLoading, initialData }: MaterialFormP
           min="0"
           value={formData.criticalLevel}
           onChange={handleChange}
-          placeholder="Enter critical level"
-          required
+          placeholder="Enter critical level (or leave for auto-calculation)"
         />
+        <p className="text-xs text-muted-foreground">
+          If left empty, will be set to 30% of initial quantity
+        </p>
       </div>
 
       <div className="space-y-2">

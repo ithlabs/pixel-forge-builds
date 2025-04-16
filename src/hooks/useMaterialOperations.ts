@@ -12,10 +12,19 @@ export function useMaterialOperations() {
   const updateMaterial = async (id: string, data: any) => {
     setLoading(true);
     try {
-      // In a real implementation, this would be an actual database call
       console.log("Updating material:", id, data);
       
-      // Simulate success
+      // Perform the actual database update
+      const { error } = await supabase
+        .from('inventory_items')
+        .update(data)
+        .eq('id', id);
+      
+      if (error) {
+        console.error("Supabase error details:", error);
+        throw error;
+      }
+      
       sonnerToast.success("Material updated successfully");
       return true;
     } catch (error: any) {
@@ -34,10 +43,19 @@ export function useMaterialOperations() {
   const deleteMaterial = async (id: string) => {
     setLoading(true);
     try {
-      // In a real implementation, this would be an actual database call
       console.log("Deleting material:", id);
       
-      // Simulate success
+      // Perform the actual database delete
+      const { error } = await supabase
+        .from('inventory_items')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        console.error("Supabase error details:", error);
+        throw error;
+      }
+      
       sonnerToast.success("Material removed successfully");
       return true;
     } catch (error: any) {
