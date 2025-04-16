@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { WorkerForm, WorkerFormValues } from "@/components/WorkerForm";
 import { useWorkerOperations } from "@/hooks/useWorkerOperations";
+import { toast } from "sonner";
 
 interface AddWorkerDialogProps {
   onWorkerAdded: () => void;
@@ -15,12 +16,18 @@ export function AddWorkerDialog({ onWorkerAdded }: AddWorkerDialogProps) {
   const { addWorker, loading } = useWorkerOperations();
 
   const handleSubmit = async (data: WorkerFormValues) => {
-    const success = await addWorker(data);
-    if (success) {
-      setOpen(false);
-      onWorkerAdded();
+    try {
+      const success = await addWorker(data);
+      if (success) {
+        setOpen(false);
+        onWorkerAdded();
+      }
+      return success;
+    } catch (error) {
+      console.error("Error in AddWorkerDialog:", error);
+      toast.error("Failed to add worker. Please try again.");
+      return false;
     }
-    return success;
   };
 
   return (

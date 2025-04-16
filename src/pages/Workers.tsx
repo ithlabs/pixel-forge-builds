@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { AddWorkerDialog } from "@/components/AddWorkerDialog";
 import { WorkerSearch } from "@/components/WorkerSearch";
 import { WorkerGrid } from "@/components/WorkerGrid";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 type Worker = {
   id: string;
@@ -44,67 +46,71 @@ const Workers = () => {
       
       console.log("Fetched workers:", transformedWorkers);
       setWorkers(transformedWorkers);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching workers:", error);
-      // Fallback to mock data if needed
-      const mockWorkers: Worker[] = [
-        {
-          id: "1",
-          name: "Abebe Kebede",
-          role: "Site Engineer",
-          phone: "+251 91 234 5678",
-          ratePerDay: "$45",
-          projectName: "Addis Heights Apartments",
-          type: "permanent",
-        },
-        {
-          id: "2",
-          name: "Sara Haile",
-          role: "Foreman",
-          phone: "+251 92 345 6789",
-          ratePerDay: "$35",
-          projectName: "Mekelle Office Complex",
-          type: "permanent",
-        },
-        {
-          id: "3",
-          name: "Dawit Teshome",
-          role: "Electrician",
-          phone: "+251 93 456 7890",
-          ratePerDay: "$28",
-          projectName: "Addis Heights Apartments",
-          type: "contract",
-        },
-        {
-          id: "4",
-          name: "Tigist Alemu",
-          role: "Plumber",
-          phone: "+251 94 567 8901",
-          ratePerDay: "$25",
-          projectName: "Mekelle Office Complex",
-          type: "contract",
-        },
-        {
-          id: "5",
-          name: "Haile Gebrselassie",
-          role: "Laborer",
-          phone: "+251 95 678 9012",
-          ratePerDay: "$15",
-          projectName: "Addis Heights Apartments",
-          type: "daily",
-        },
-        {
-          id: "6",
-          name: "Meron Bekele",
-          role: "Painter",
-          phone: "+251 96 789 0123",
-          ratePerDay: "$20",
-          projectName: "Dire Dawa Bridge",
-          type: "daily",
-        },
-      ];
+      toast.error("Failed to load workers: " + (error.message || "Unknown error"));
       
-      setWorkers(mockWorkers);
+      // Fallback to mock data when in development
+      if (process.env.NODE_ENV === 'development') {
+        const mockWorkers: Worker[] = [
+          {
+            id: "1",
+            name: "Abebe Kebede",
+            role: "Site Engineer",
+            phone: "+251 91 234 5678",
+            ratePerDay: "$45",
+            projectName: "Addis Heights Apartments",
+            type: "permanent",
+          },
+          {
+            id: "2",
+            name: "Sara Haile",
+            role: "Foreman",
+            phone: "+251 92 345 6789",
+            ratePerDay: "$35",
+            projectName: "Mekelle Office Complex",
+            type: "permanent",
+          },
+          {
+            id: "3",
+            name: "Dawit Teshome",
+            role: "Electrician",
+            phone: "+251 93 456 7890",
+            ratePerDay: "$28",
+            projectName: "Addis Heights Apartments",
+            type: "contract",
+          },
+          {
+            id: "4",
+            name: "Tigist Alemu",
+            role: "Plumber",
+            phone: "+251 94 567 8901",
+            ratePerDay: "$25",
+            projectName: "Mekelle Office Complex",
+            type: "contract",
+          },
+          {
+            id: "5",
+            name: "Haile Gebrselassie",
+            role: "Laborer",
+            phone: "+251 95 678 9012",
+            ratePerDay: "$15",
+            projectName: "Addis Heights Apartments",
+            type: "daily",
+          },
+          {
+            id: "6",
+            name: "Meron Bekele",
+            role: "Painter",
+            phone: "+251 96 789 0123",
+            ratePerDay: "$20",
+            projectName: "Dire Dawa Bridge",
+            type: "daily",
+          },
+        ];
+        
+        setWorkers(mockWorkers);
+      }
     } finally {
       setIsLoading(false);
     }

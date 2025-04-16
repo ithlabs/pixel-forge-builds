@@ -81,6 +81,11 @@ export function useWorkerOperations() {
     try {
       console.log("Adding worker:", data);
       
+      // Make sure ratePerDay is a number
+      const ratePerDay = typeof data.ratePerDay === 'string' 
+        ? parseFloat(data.ratePerDay.replace('$', '')) 
+        : data.ratePerDay;
+      
       // Insert directly to Supabase
       const { data: workerData, error } = await supabase
         .from('workers')
@@ -88,7 +93,7 @@ export function useWorkerOperations() {
           name: data.name,
           role: data.role,
           phone: data.phone || null,
-          rate_per_day: parseFloat(data.ratePerDay),
+          rate_per_day: ratePerDay,
           type: data.type,
         })
         .select()
