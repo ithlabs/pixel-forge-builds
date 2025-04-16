@@ -17,12 +17,21 @@ export function AddWorkerDialog({ onWorkerAdded }: AddWorkerDialogProps) {
 
   const handleSubmit = async (data: WorkerFormValues) => {
     try {
+      console.log("Submitting worker form with data:", data);
+      
+      // Validate rate before submitting
+      if (isNaN(parseFloat(data.ratePerDay.replace(/[^0-9.-]+/g, '')))) {
+        toast.error("Please enter a valid rate");
+        return false;
+      }
+      
       const success = await addWorker(data);
       if (success) {
         setOpen(false);
         onWorkerAdded();
+        return true;
       }
-      return success;
+      return false;
     } catch (error) {
       console.error("Error in AddWorkerDialog:", error);
       toast.error("Failed to add worker. Please try again.");

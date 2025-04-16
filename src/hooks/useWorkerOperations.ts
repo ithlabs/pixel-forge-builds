@@ -79,12 +79,16 @@ export function useWorkerOperations() {
   const addWorker = async (data: any) => {
     setLoading(true);
     try {
-      console.log("Adding worker:", data);
+      console.log("Adding worker with data:", data);
       
-      // Make sure ratePerDay is a number
-      const ratePerDay = typeof data.ratePerDay === 'string' 
-        ? parseFloat(data.ratePerDay.replace('$', '')) 
-        : data.ratePerDay;
+      // Extract numeric value from ratePerDay
+      let ratePerDay = data.ratePerDay;
+      if (typeof ratePerDay === 'string') {
+        // Remove any currency symbol and convert to number
+        ratePerDay = parseFloat(ratePerDay.replace(/[^0-9.-]+/g, ''));
+      }
+      
+      console.log("Parsed rate per day:", ratePerDay);
       
       // Insert directly to Supabase
       const { data: workerData, error } = await supabase
@@ -100,9 +104,11 @@ export function useWorkerOperations() {
         .single();
       
       if (error) {
+        console.error("Supabase error details:", error);
         throw error;
       }
       
+      console.log("Worker added successfully:", workerData);
       sonnerToast.success("Worker added successfully");
       return true;
     } catch (error: any) {
