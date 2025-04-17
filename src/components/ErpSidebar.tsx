@@ -1,6 +1,6 @@
 
 import { cn } from "@/lib/utils";
-import { Building2, ClipboardList, LayoutDashboard, ShoppingCart, UserRound, Wallet } from "lucide-react";
+import { Building2, ClipboardList, LayoutDashboard, ShoppingCart, UserRound, Wallet, Users } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 export const ErpSidebar = () => {
@@ -10,6 +10,7 @@ export const ErpSidebar = () => {
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Projects", href: "/projects", icon: Building2 },
     { name: "Workers/HR", href: "/workers", icon: UserRound },
+    { name: "Users", href: "/users", icon: Users }, // New navigation item
     { name: "Inventory", href: "/inventory", icon: ShoppingCart },
     { name: "Finance", href: "/finance", icon: Wallet },
     { name: "Reports", href: "/reports", icon: ClipboardList },
