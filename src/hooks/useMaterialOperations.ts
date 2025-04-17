@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -6,16 +7,6 @@ import { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/type
 type InventoryItem = Tables<'inventory_items'>;
 type MaterialInsert = TablesInsert<'inventory_items'>;
 type MaterialUpdate = TablesUpdate<'inventory_items'>;
-
-interface MaterialUpdate {
-  name?: string;
-  quantity?: number;
-  unit?: string;
-  unit_price?: number;
-  category?: string;
-  supplier?: string;
-  critical_level?: number;
-}
 
 export function useMaterialOperations() {
   const [loading, setLoading] = useState(false);
