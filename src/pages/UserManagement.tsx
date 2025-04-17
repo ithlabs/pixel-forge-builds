@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Settings } from "lucide-react";
 
 import { 
   Select, 
@@ -13,11 +13,14 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { InviteUserDialog } from '@/components/InviteUserDialog';
+
+type UserRole = 'owner' | 'admin' | 'manager' | 'employee';
 
 type UserProfile = {
   id: string;
   email: string;
-  role: string;
+  role: UserRole;
   first_name: string | null;
   last_name: string | null;
 };
@@ -25,6 +28,7 @@ type UserProfile = {
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -50,7 +54,7 @@ const UserManagement: React.FC = () => {
           return {
             id: user.id,
             email: user.email || '',
-            role: roleData?.role || 'employee',
+            role: (roleData?.role as UserRole) || 'employee',
             first_name: profileData?.first_name || null,
             last_name: profileData?.last_name || null,
           };
@@ -66,7 +70,7 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const updateUserRole = async (userId: string, newRole: string) => {
+  const updateUserRole = async (userId: string, newRole: UserRole) => {
     try {
       const { error } = await supabase
         .from('user_roles')
@@ -83,6 +87,30 @@ const UserManagement: React.FC = () => {
     }
   };
 
+  const handleInviteUser = async (email: string, role: UserRole, firstName: string, lastName: string) => {
+    try {
+      // First, create the user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
+        email, 
+        { 
+          data: { 
+            first_name: firstName,
+            last_name: lastName
+          } 
+        }
+      );
+      
+      if (authError) throw authError;
+      
+      toast.success(`Invitation sent to ${email}`);
+      fetchUsers();
+      setShowInviteDialog(false);
+    } catch (error: any) {
+      console.error('Error inviting user:', error);
+      toast.error(error.message || 'Failed to invite user');
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -94,7 +122,7 @@ const UserManagement: React.FC = () => {
           title="User Management" 
           description="Manage users and their roles in the ERP system"
         />
-        <Button className="bg-construction-orange">
+        <Button className="bg-construction-orange" onClick={() => setShowInviteDialog(true)}>
           <Plus className="mr-2 h-4 w-4" /> Invite User
         </Button>
       </div>
@@ -119,7 +147,7 @@ const UserManagement: React.FC = () => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <Select 
                     value={user.role} 
-                    onValueChange={(newRole) => updateUserRole(user.id, newRole)}
+                    onValueChange={(newRole) => updateUserRole(user.id, newRole as UserRole)}
                   >
                     <SelectTrigger className="w-[180px]">
                       <SelectValue>{user.role}</SelectValue>
@@ -140,6 +168,13 @@ const UserManagement: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Invite User Dialog */}
+      <InviteUserDialog 
+        isOpen={showInviteDialog} 
+        onClose={() => setShowInviteDialog(false)} 
+        onInvite={handleInviteUser} 
+      />
     </div>
   );
 };

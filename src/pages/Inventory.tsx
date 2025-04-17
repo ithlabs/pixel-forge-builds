@@ -1,110 +1,120 @@
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { MaterialCard } from "@/components/MaterialCard";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { useMaterialOperations } from "@/hooks/useMaterialOperations";
 import { AddMaterialDialog } from "@/components/AddMaterialDialog";
 import { RestockDialog } from "@/components/RestockDialog";
 import { HistoryDialog } from "@/components/HistoryDialog";
-import { Tables } from "@/integrations/supabase/types";
+import { useMaterialOperations } from "@/hooks/useMaterialOperations";
 
-const Inventory = () => {
-  const materialOps = useMaterialOperations();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [selectedMaterial, setSelectedMaterial] = useState<Tables['inventory_items'] | null>(null);
-  const [isRestockDialogOpen, setIsRestockDialogOpen] = useState(false);
-  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
+const Inventory: React.FC = () => {
+  const [showAddMaterial, setShowAddMaterial] = useState(false);
+  const [selectedMaterialId, setSelectedMaterialId] = useState<string | null>(null);
+  const [showRestockDialog, setShowRestockDialog] = useState(false);
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  
+  // Get materials management functions
+  const { 
+    loading, 
+    materials, 
+    addMaterial, 
+    updateMaterial, 
+    deleteMaterial 
+  } = useMaterialOperations();
 
-  const filteredMaterials = materialOps.materials.filter((material) =>
-    material.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    material.category.toLowerCase().includes(searchQuery.toLowerCase())
+  const selectedMaterial = materials?.find(
+    (material) => material.id === selectedMaterialId
   );
 
-  const handleRestock = (material: Tables['inventory_items']) => {
-    setSelectedMaterial(material);
-    setIsRestockDialogOpen(true);
-  };
-
-  const handleViewHistory = (material: Tables['inventory_items']) => {
-    setSelectedMaterial(material);
-    setIsHistoryDialogOpen(true);
-  };
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <p>Loading materials...</p>
+      </div>
+    );
+  }
 
   return (
     <div>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <PageHeader 
-          title="Inventory Management" 
-          description="Track and manage construction materials"
-          className="mb-4 md:mb-0"
+      <div className="flex justify-between items-center mb-6">
+        <PageHeader
+          title="Inventory Management"
+          description="Manage your construction materials inventory"
         />
-        <div className="flex w-full md:w-auto space-x-3">
-          <Input
-            placeholder="Search materials..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full md:w-[220px]"
-          />
-          <Button 
-            className="bg-construction-orange hover:bg-construction-orange/90 whitespace-nowrap"
-            onClick={() => setIsAddDialogOpen(true)}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Add Material
-          </Button>
-        </div>
+        <Button 
+          className="bg-construction-orange" 
+          onClick={() => setShowAddMaterial(true)}
+        >
+          <Plus className="mr-2 h-4 w-4" /> Add Material
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {materialOps.loading ? (
-          // Placeholders for loading state
-          Array(8).fill(0).map((_, index) => (
-            <div 
-              key={index}
-              className="h-[320px] rounded-lg border border-border bg-card animate-pulse"
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {materials && materials.map((material) => {
+          // Define low stock threshold (20% of total or less than 10)
+          const lowStock = material.quantity < 10 || material.quantity < (material.initial_quantity * 0.2);
+          
+          return (
+            <MaterialCard
+              key={material.id}
+              id={material.id}
+              name={material.name}
+              category={material.category}
+              quantity={material.quantity}
+              unit={material.unit}
+              unitPrice={material.unit_price}
+              supplier={material.supplier}
+              isLowStock={lowStock}
+              onRestock={() => {
+                setSelectedMaterialId(material.id);
+                setShowRestockDialog(true);
+              }}
+              onViewHistory={() => {
+                setSelectedMaterialId(material.id);
+                setShowHistoryDialog(true);
+              }}
             />
-          ))
-        ) : filteredMaterials.length === 0 ? (
-          <div className="col-span-full p-8 text-center">
-            <h3 className="text-xl font-medium">No materials found</h3>
-            <p className="text-muted-foreground mt-1">Try adjusting your search or add new materials.</p>
-          </div>
-        ) : (
-          filteredMaterials.map((material) => (
-            <MaterialCard 
-              key={material.id} 
-              material={material} 
-              onRestock={() => handleRestock(material)}
-              onViewHistory={() => handleViewHistory(material)}
-              isLowStock={material.quantity <= 10} // Set a default low stock threshold
-            />
-          ))
-        )}
+          );
+        })}
       </div>
 
-      <AddMaterialDialog 
-        open={isAddDialogOpen} 
-        onOpenChange={setIsAddDialogOpen}
-        onAddMaterial={materialOps.addMaterial}
-      />
-
-      {selectedMaterial && (
-        <RestockDialog
-          open={isRestockDialogOpen}
-          onOpenChange={setIsRestockDialogOpen}
-          materialId={selectedMaterial.id}
+      {/* Add Material Dialog */}
+      {showAddMaterial && (
+        <AddMaterialDialog
+          isOpen={showAddMaterial}
+          onClose={() => setShowAddMaterial(false)}
+          onAddMaterial={addMaterial}
         />
       )}
 
-      {selectedMaterial && (
-        <HistoryDialog
-          open={isHistoryDialogOpen}
-          onOpenChange={setIsHistoryDialogOpen}
+      {/* Restock Dialog */}
+      {showRestockDialog && selectedMaterial && (
+        <RestockDialog
+          isOpen={showRestockDialog}
+          onClose={() => setShowRestockDialog(false)}
           materialId={selectedMaterial.id}
+          materialName={selectedMaterial.name}
+          currentStock={selectedMaterial.quantity}
+          unit={selectedMaterial.unit}
+          onRestock={(quantity) => {
+            // Handle restock logic
+            updateMaterial(selectedMaterial.id, {
+              quantity: selectedMaterial.quantity + quantity
+            });
+            setShowRestockDialog(false);
+          }}
+        />
+      )}
+
+      {/* History Dialog */}
+      {showHistoryDialog && selectedMaterial && (
+        <HistoryDialog
+          isOpen={showHistoryDialog}
+          onClose={() => setShowHistoryDialog(false)}
+          materialId={selectedMaterial.id}
+          materialName={selectedMaterial.name}
         />
       )}
     </div>
