@@ -1,9 +1,12 @@
 
+import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, FileSpreadsheet } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ReportDialog } from "@/components/ReportDialog";
+import { toast } from "sonner";
 import {
   BarChart,
   Bar,
@@ -18,6 +21,10 @@ import {
 } from "recharts";
 
 const Reports = () => {
+  const [activeTab, setActiveTab] = useState("project");
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [selectedReportType, setSelectedReportType] = useState<string>("expense");
+
   // Mock data for project progress
   const projectProgressData = [
     { month: "Jan", planned: 10, actual: 8 },
@@ -40,6 +47,91 @@ const Reports = () => {
     { month: "Jun", cement: 180, steel: 85, timber: 70 },
   ];
 
+  const handleDownloadReport = (reportName: string) => {
+    // Generate simple CSV data based on the report
+    let csvData = "";
+    const filename = `${reportName.toLowerCase().replace(/\s+/g, '-')}.csv`;
+    
+    if (reportName.includes("Timeline")) {
+      csvData = "Task,Start Date,End Date,Status\nFoundation,2023-01-01,2023-01-15,Completed\nFraming,2023-01-16,2023-02-10,Completed\nRoofing,2023-02-11,2023-03-01,In Progress";
+    } else if (reportName.includes("Budget")) {
+      csvData = "Category,Budgeted,Actual,Variance\nMaterials,150000,145000,5000\nLabor,200000,215000,-15000\nEquipment,75000,72000,3000";
+    } else {
+      csvData = "Date,Item,Value\n2023-01-15,Item A,12500\n2023-01-20,Item B,8750\n2023-02-05,Item C,15000";
+    }
+    
+    // Create and trigger download
+    const blob = new Blob([csvData], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success(`${reportName} downloaded successfully`);
+  };
+
+  const handleExportAll = () => {
+    // Create a zip file simulation with a small delay
+    toast.promise(
+      new Promise(resolve => setTimeout(resolve, 1500)),
+      {
+        loading: "Preparing export...",
+        success: "All reports exported successfully",
+        error: "Failed to export reports"
+      }
+    );
+  };
+
+  const handleGenerateCustomReport = (reportType?: string) => {
+    if (reportType) {
+      setSelectedReportType(reportType);
+    }
+    setIsReportDialogOpen(true);
+  };
+
+  // Define report categories and their reports
+  const reportCategories = {
+    project: [
+      "Project Timeline Report",
+      "Milestone Status Report",
+      "Project Budget vs Actual",
+      "Contractor Performance Report",
+      "Project Risk Assessment",
+      "Site Inspection Report"
+    ],
+    financial: [
+      "Monthly Expense Summary",
+      "Project Cost Analysis",
+      "Cash Flow Statement",
+      "Profit & Loss Report",
+      "Budget Variance Analysis",
+      "Payroll Summary Report",
+      "Invoice Status Report",
+      "Vendor Payment History",
+      "Tax Documentation"
+    ],
+    inventory: [
+      "Current Stock Summary",
+      "Material Usage by Project",
+      "Low Stock Alert Report",
+      "Material Cost Analysis",
+      "Procurement History",
+      "Supplier Performance Report"
+    ],
+    workforce: [
+      "Employee Directory",
+      "Attendance & Time Tracking",
+      "Worker Assignment by Project",
+      "Labor Cost Analysis",
+      "Contractor Performance Report",
+      "Skill & Certification Report"
+    ]
+  };
+
   return (
     <div>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
@@ -49,14 +141,22 @@ const Reports = () => {
           className="mb-4 md:mb-0"
         />
         <div className="flex space-x-3">
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExportAll}>
             <Download className="h-4 w-4 mr-2" />
             Export All
+          </Button>
+          <Button onClick={() => handleGenerateCustomReport()}>
+            Generate Custom Report
           </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="project" className="space-y-4">
+      <Tabs 
+        defaultValue="project" 
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-4"
+      >
         <TabsList>
           <TabsTrigger value="project">Project Reports</TabsTrigger>
           <TabsTrigger value="financial">Financial Reports</TabsTrigger>
@@ -119,14 +219,7 @@ const Reports = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[
-                  "Project Timeline Report",
-                  "Milestone Status Report",
-                  "Project Budget vs Actual",
-                  "Contractor Performance Report",
-                  "Project Risk Assessment",
-                  "Site Inspection Report"
-                ].map((report, index) => (
+                {reportCategories.project.map((report, index) => (
                   <Card key={index} className="bg-muted/10">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
@@ -134,7 +227,12 @@ const Reports = () => {
                           <FileSpreadsheet className="h-5 w-5 mr-2 text-construction-navy" />
                           <span className="font-medium">{report}</span>
                         </div>
-                        <Button variant="ghost" size="sm" className="p-0 h-auto">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="p-0 h-auto"
+                          onClick={() => handleDownloadReport(report)}
+                        >
                           <Download className="h-4 w-4" />
                         </Button>
                       </div>
@@ -153,17 +251,7 @@ const Reports = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {[
-                  "Monthly Expense Summary",
-                  "Project Cost Analysis",
-                  "Cash Flow Statement",
-                  "Profit & Loss Report",
-                  "Budget Variance Analysis",
-                  "Payroll Summary Report",
-                  "Invoice Status Report",
-                  "Vendor Payment History",
-                  "Tax Documentation"
-                ].map((report, index) => (
+                {reportCategories.financial.map((report, index) => (
                   <Card key={index} className="bg-muted/10">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
@@ -171,7 +259,12 @@ const Reports = () => {
                           <FileSpreadsheet className="h-5 w-5 mr-2 text-construction-navy" />
                           <span className="font-medium">{report}</span>
                         </div>
-                        <Button variant="ghost" size="sm" className="p-0 h-auto">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="p-0 h-auto"
+                          onClick={() => handleDownloadReport(report)}
+                        >
                           <Download className="h-4 w-4" />
                         </Button>
                       </div>
@@ -190,14 +283,7 @@ const Reports = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {[
-                  "Current Stock Summary",
-                  "Material Usage by Project",
-                  "Low Stock Alert Report",
-                  "Material Cost Analysis",
-                  "Procurement History",
-                  "Supplier Performance Report"
-                ].map((report, index) => (
+                {reportCategories.inventory.map((report, index) => (
                   <Card key={index} className="bg-muted/10">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
@@ -205,7 +291,12 @@ const Reports = () => {
                           <FileSpreadsheet className="h-5 w-5 mr-2 text-construction-navy" />
                           <span className="font-medium">{report}</span>
                         </div>
-                        <Button variant="ghost" size="sm" className="p-0 h-auto">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="p-0 h-auto"
+                          onClick={() => handleDownloadReport(report)}
+                        >
                           <Download className="h-4 w-4" />
                         </Button>
                       </div>
@@ -224,14 +315,7 @@ const Reports = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {[
-                  "Employee Directory",
-                  "Attendance & Time Tracking",
-                  "Worker Assignment by Project",
-                  "Labor Cost Analysis",
-                  "Contractor Performance Report",
-                  "Skill & Certification Report"
-                ].map((report, index) => (
+                {reportCategories.workforce.map((report, index) => (
                   <Card key={index} className="bg-muted/10">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
@@ -239,7 +323,12 @@ const Reports = () => {
                           <FileSpreadsheet className="h-5 w-5 mr-2 text-construction-navy" />
                           <span className="font-medium">{report}</span>
                         </div>
-                        <Button variant="ghost" size="sm" className="p-0 h-auto">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="p-0 h-auto"
+                          onClick={() => handleDownloadReport(report)}
+                        >
                           <Download className="h-4 w-4" />
                         </Button>
                       </div>
@@ -251,6 +340,12 @@ const Reports = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <ReportDialog 
+        open={isReportDialogOpen}
+        onOpenChange={setIsReportDialogOpen}
+        reportType={selectedReportType}
+      />
     </div>
   );
 };

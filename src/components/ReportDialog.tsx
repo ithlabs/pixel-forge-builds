@@ -6,18 +6,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { FileDown } from "lucide-react";
+import { FileDown, Loader2 } from "lucide-react";
 
 interface ReportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  reportType?: string;
 }
 
 export function ReportDialog({
   open,
-  onOpenChange
+  onOpenChange,
+  reportType = "expense"
 }: ReportDialogProps) {
-  const [reportType, setReportType] = useState("expense");
+  const [selectedReportType, setSelectedReportType] = useState(reportType);
   const [startDate, setStartDate] = useState<string>(
     new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   );
@@ -31,14 +33,47 @@ export function ReportDialog({
     { id: "pl", name: "Project P&L Statement" },
     { id: "invoice", name: "Invoice Summary" },
     { id: "budget", name: "Budget Variance Analysis" },
+    { id: "inventory", name: "Inventory Status Report" },
+    { id: "workforce", name: "Workforce Allocation Report" }
   ];
 
   const handleGenerateReport = () => {
     setLoading(true);
     
+    // Simulate report generation with a delay
     setTimeout(() => {
       setLoading(false);
-      toast.success(`${reportTypes.find(r => r.id === reportType)?.name} generated successfully`);
+      
+      // Create a simple mock CSV data for download based on report type
+      let csvData = "";
+      const filename = `${selectedReportType}-report-${startDate}-to-${endDate}.csv`;
+      
+      switch (selectedReportType) {
+        case "expense":
+          csvData = "Date,Project,Category,Amount,Description\n2023-01-15,Addis Heights,Materials,15000,Cement purchases\n2023-01-20,Mekelle Tower,Labor,12500,Contractor payments\n2023-02-05,Hawassa Resort,Equipment,8750,Equipment rental";
+          break;
+        case "pl":
+          csvData = "Project,Revenue,Expenses,Profit\nAddis Heights,450000,325000,125000\nMekelle Tower,380000,295000,85000\nHawassa Resort,520000,390000,130000";
+          break;
+        case "invoice":
+          csvData = "Invoice ID,Client,Amount,Status,Due Date\nINV-001,Addis Development Corp,180000,Paid,2023-02-15\nINV-002,Tigray Business Group,125000,Pending,2023-03-01\nINV-003,Southern Tourism Ltd,95000,Overdue,2023-01-30";
+          break;
+        default:
+          csvData = "Date,Category,Value\n2023-01-15,Category A,15000\n2023-01-20,Category B,12500\n2023-02-05,Category C,8750";
+      }
+      
+      // Create and trigger download
+      const blob = new Blob([csvData], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success(`${reportTypes.find(r => r.id === selectedReportType)?.name} downloaded successfully`);
       onOpenChange(false);
     }, 1500);
   };
@@ -56,7 +91,7 @@ export function ReportDialog({
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Report Type</Label>
-            <Select value={reportType} onValueChange={setReportType}>
+            <Select value={selectedReportType} onValueChange={setSelectedReportType}>
               <SelectTrigger>
                 <SelectValue placeholder="Select report type" />
               </SelectTrigger>
@@ -77,6 +112,7 @@ export function ReportDialog({
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
+              max={endDate}
             />
           </div>
           
@@ -87,6 +123,7 @@ export function ReportDialog({
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
+              min={startDate}
             />
           </div>
         </div>
@@ -99,7 +136,12 @@ export function ReportDialog({
             onClick={handleGenerateReport} 
             disabled={loading}
           >
-            {loading ? "Generating..." : (
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Generating...
+              </>
+            ) : (
               <>
                 <FileDown className="h-4 w-4 mr-2" />
                 Generate Report

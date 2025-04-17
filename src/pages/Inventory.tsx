@@ -1,117 +1,107 @@
 
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { MaterialCard } from "@/components/MaterialCard";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { useMaterialOperations } from "@/hooks/useMaterialOperations";
 import { AddMaterialDialog } from "@/components/AddMaterialDialog";
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { RestockDialog } from "@/components/RestockDialog";
+import { HistoryDialog } from "@/components/HistoryDialog";
 
 const Inventory = () => {
-  const [materials, setMaterials] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
+  const { materials, addMaterial, loading } = useMaterialOperations();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedMaterial, setSelectedMaterial] = useState<any>(null);
+  const [isRestockDialogOpen, setIsRestockDialogOpen] = useState(false);
+  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
 
-  const fetchMaterials = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('inventory_items')
-        .select('*');
-        
-      if (error) {
-        throw error;
-      }
-      
-      // Transform the data to include criticalLevel (mimicking the mock data)
-      const transformedData = data.map(item => ({
-        ...item,
-        id: item.id,
-        name: item.name,
-        unit: item.unit,
-        currentStock: item.quantity,
-        criticalLevel: item.critical_level || Math.floor(item.quantity * 0.3), // Setting critical level to 30% of current for demo
-        unitPrice: item.unit_price,
-        category: item.category
-      }));
-      
-      setMaterials(transformedData);
-    } catch (error) {
-      console.error("Error fetching materials:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchMaterials();
-  }, []);
-
-  const handleMaterialAdded = () => {
-    fetchMaterials();
-  };
-
-  const handleMaterialUpdated = () => {
-    fetchMaterials();
-  };
-
-  const filteredMaterials = materials.filter(material => 
-    material.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredMaterials = materials.filter((material) =>
+    material.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    material.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleRestock = (material: any) => {
+    setSelectedMaterial(material);
+    setIsRestockDialogOpen(true);
+  };
+
+  const handleViewHistory = (material: any) => {
+    setSelectedMaterial(material);
+    setIsHistoryDialogOpen(true);
+  };
 
   return (
     <div>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <PageHeader 
-          title="Inventory & Procurement" 
-          description="Manage materials, supplies, and procurement"
+          title="Inventory Management" 
+          description="Track and manage construction materials"
           className="mb-4 md:mb-0"
         />
-        <AddMaterialDialog onMaterialAdded={handleMaterialAdded} />
+        <div className="flex w-full md:w-auto space-x-3">
+          <Input
+            placeholder="Search materials..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full md:w-[220px]"
+          />
+          <Button 
+            className="bg-construction-orange hover:bg-construction-orange/90 whitespace-nowrap"
+            onClick={() => setIsAddDialogOpen(true)}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Add Material
+          </Button>
+        </div>
       </div>
-      
-      <Card className="mb-6 p-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-grow">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input 
-              placeholder="Search materials..." 
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {loading ? (
+          // Placeholders for loading state
+          Array(8).fill(0).map((_, index) => (
+            <div 
+              key={index}
+              className="h-[320px] rounded-lg border border-border bg-card animate-pulse"
             />
+          ))
+        ) : filteredMaterials.length === 0 ? (
+          <div className="col-span-full p-8 text-center">
+            <h3 className="text-xl font-medium">No materials found</h3>
+            <p className="text-muted-foreground mt-1">Try adjusting your search or add new materials.</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="whitespace-nowrap">
-              Filter
-            </Button>
-            <Button variant="outline" className="whitespace-nowrap">
-              Sort
-            </Button>
-          </div>
-        </div>
-      </Card>
-      
-      {loading ? (
-        <div className="text-center py-8">Loading materials...</div>
-      ) : materials.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground mb-4">No materials found. Add your first material to get started.</p>
-          <AddMaterialDialog onMaterialAdded={handleMaterialAdded} />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredMaterials.map(material => (
+        ) : (
+          filteredMaterials.map((material) => (
             <MaterialCard 
               key={material.id} 
-              {...material} 
-              onMaterialUpdated={handleMaterialUpdated}
+              material={material} 
+              onRestock={handleRestock}
+              onViewHistory={handleViewHistory}
+              isLowStock={material.quantity <= 10} // Set a default low stock threshold
             />
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
+
+      <AddMaterialDialog 
+        open={isAddDialogOpen} 
+        onOpenChange={setIsAddDialogOpen}
+        onAddMaterial={addMaterial}
+      />
+
+      <RestockDialog
+        open={isRestockDialogOpen}
+        onOpenChange={setIsRestockDialogOpen}
+        material={selectedMaterial}
+      />
+
+      <HistoryDialog
+        open={isHistoryDialogOpen}
+        onOpenChange={setIsHistoryDialogOpen}
+        material={selectedMaterial}
+      />
     </div>
   );
 };
