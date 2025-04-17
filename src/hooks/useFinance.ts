@@ -81,7 +81,18 @@ export function useFinance() {
       try {
         setLoading(true);
         
-        // Fetch projects first to get project names
+        // Try to get saved expenses and invoices from localStorage first
+        const savedExpenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+        const savedInvoices = JSON.parse(localStorage.getItem('invoices') || '[]');
+        
+        if (savedExpenses.length > 0 || savedInvoices.length > 0) {
+          setExpenses(savedExpenses);
+          setInvoices(savedInvoices);
+          setLoading(false);
+          return;
+        }
+        
+        // If no saved data, fetch projects first to get project names
         const { data: projectsData, error: projectsError } = await supabase
           .from('projects')
           .select('id, name');
@@ -157,6 +168,10 @@ export function useFinance() {
         mockExpenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         mockInvoices.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         
+        // Save to localStorage
+        localStorage.setItem('expenses', JSON.stringify(mockExpenses));
+        localStorage.setItem('invoices', JSON.stringify(mockInvoices));
+        
         setExpenses(mockExpenses);
         setInvoices(mockInvoices);
       } catch (err: any) {
@@ -174,12 +189,22 @@ export function useFinance() {
     fetchFinanceData();
   }, []);
   
+  // Function to refresh data (useful after adding new transactions)
+  const refreshData = () => {
+    const savedExpenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+    const savedInvoices = JSON.parse(localStorage.getItem('invoices') || '[]');
+    
+    setExpenses(savedExpenses);
+    setInvoices(savedInvoices);
+  };
+  
   return { 
     expenses, 
     invoices, 
     expensesData, 
     expensesByCategory,
     loading, 
-    error 
+    error,
+    refreshData
   };
 }

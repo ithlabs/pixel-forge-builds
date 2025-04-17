@@ -1,9 +1,10 @@
 
+import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { CircleDollarSign, FileText, Plus, Loader2 } from "lucide-react";
+import { CircleDollarSign, Eye, FileText, Plus, Loader2 } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -20,9 +21,16 @@ import {
 import { useFinance } from "@/hooks/useFinance";
 import { formatCurrency, formatDate, formatStatusColor } from "@/lib/formatters";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TransactionDialog } from "@/components/TransactionDialog";
+import { ReportDialog } from "@/components/ReportDialog";
+import { ViewExpenseDialog } from "@/components/ViewExpenseDialog";
 
 const Finance = () => {
-  const { expenses, invoices, expensesData, expensesByCategory, loading } = useFinance();
+  const { expenses, invoices, expensesData, expensesByCategory, loading, refreshData } = useFinance();
+  const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState<typeof expenses[0] | null>(null);
+  const [isViewExpenseDialogOpen, setIsViewExpenseDialogOpen] = useState(false);
 
   // Render loading skeletons if data is still loading
   if (loading) {
@@ -98,6 +106,11 @@ const Finance = () => {
     );
   }
 
+  const handleViewExpense = (expense: typeof expenses[0]) => {
+    setSelectedExpense(expense);
+    setIsViewExpenseDialogOpen(true);
+  };
+
   return (
     <div>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
@@ -107,11 +120,17 @@ const Finance = () => {
           className="mb-4 md:mb-0"
         />
         <div className="flex space-x-3">
-          <Button variant="outline">
+          <Button 
+            variant="outline"
+            onClick={() => setIsReportDialogOpen(true)}
+          >
             <FileText className="h-4 w-4 mr-2" />
             Generate Report
           </Button>
-          <Button className="bg-construction-orange hover:bg-construction-orange/90">
+          <Button 
+            className="bg-construction-orange hover:bg-construction-orange/90"
+            onClick={() => setIsTransactionDialogOpen(true)}
+          >
             <Plus className="h-4 w-4 mr-2" />
             New Transaction
           </Button>
@@ -215,7 +234,14 @@ const Finance = () => {
                         <td className="p-3">{formatDate(expense.date)}</td>
                         <td className="p-3">{expense.description}</td>
                         <td className="p-3 text-right">
-                          <Button variant="ghost" size="sm">View</Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleViewExpense(expense)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -262,7 +288,10 @@ const Finance = () => {
                           </span>
                         </td>
                         <td className="p-3 text-right">
-                          <Button variant="ghost" size="sm">View</Button>
+                          <Button variant="ghost" size="sm">
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -285,7 +314,12 @@ const Finance = () => {
                   <CircleDollarSign className="mx-auto h-10 w-10 text-muted-foreground" />
                   <h3 className="mt-2 font-medium">No payment records yet</h3>
                   <p className="text-sm text-muted-foreground">Add a payment record to get started</p>
-                  <Button className="mt-4">Add Payment</Button>
+                  <Button 
+                    className="mt-4"
+                    onClick={() => setIsTransactionDialogOpen(true)}
+                  >
+                    Add Payment
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -306,7 +340,13 @@ const Finance = () => {
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground">Generate a detailed report of all expenses by month</p>
-                    <Button variant="outline" className="mt-4 w-full">Generate</Button>
+                    <Button 
+                      variant="outline" 
+                      className="mt-4 w-full"
+                      onClick={() => setIsReportDialogOpen(true)}
+                    >
+                      Generate
+                    </Button>
                   </CardContent>
                 </Card>
                 <Card>
@@ -315,7 +355,13 @@ const Finance = () => {
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground">Profit & loss breakdown for each project</p>
-                    <Button variant="outline" className="mt-4 w-full">Generate</Button>
+                    <Button 
+                      variant="outline" 
+                      className="mt-4 w-full"
+                      onClick={() => setIsReportDialogOpen(true)}
+                    >
+                      Generate
+                    </Button>
                   </CardContent>
                 </Card>
                 <Card>
@@ -324,7 +370,13 @@ const Finance = () => {
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground">Summary of all invoices by status and date</p>
-                    <Button variant="outline" className="mt-4 w-full">Generate</Button>
+                    <Button 
+                      variant="outline" 
+                      className="mt-4 w-full"
+                      onClick={() => setIsReportDialogOpen(true)}
+                    >
+                      Generate
+                    </Button>
                   </CardContent>
                 </Card>
               </div>
@@ -332,6 +384,24 @@ const Finance = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Dialogs */}
+      <TransactionDialog 
+        open={isTransactionDialogOpen} 
+        onOpenChange={setIsTransactionDialogOpen}
+        onSuccess={refreshData}
+      />
+      
+      <ReportDialog 
+        open={isReportDialogOpen}
+        onOpenChange={setIsReportDialogOpen}
+      />
+      
+      <ViewExpenseDialog
+        open={isViewExpenseDialogOpen}
+        onOpenChange={setIsViewExpenseDialogOpen}
+        expense={selectedExpense}
+      />
     </div>
   );
 };

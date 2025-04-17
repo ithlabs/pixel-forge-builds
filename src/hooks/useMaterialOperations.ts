@@ -1,68 +1,105 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { toast as sonnerToast } from "sonner";
+import { toast } from "@/hooks/use-toast";
+import { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+
+type InventoryItem = Tables<'inventory_items'>;
+type MaterialInsert = TablesInsert<'inventory_items'>;
+type MaterialUpdate = TablesUpdate<'inventory_items'>;
+
+interface MaterialUpdate {
+  name?: string;
+  quantity?: number;
+  unit?: string;
+  unit_price?: number;
+  category?: string;
+  supplier?: string;
+  critical_level?: number;
+}
 
 export function useMaterialOperations() {
-  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
-  // Material operations
-  const updateMaterial = async (id: string, data: any) => {
+  const addMaterial = async (newMaterial: MaterialInsert) => {
     setLoading(true);
     try {
-      console.log("Updating material:", id, data);
-      
-      // Perform the actual database update
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('inventory_items')
-        .update(data)
-        .eq('id', id);
-      
+        .insert([newMaterial])
+        .select();
+
       if (error) {
-        console.error("Supabase error details:", error);
         throw error;
       }
-      
-      sonnerToast.success("Material updated successfully");
-      return true;
-    } catch (error: any) {
-      console.error("Error updating material:", error);
+
       toast({
-        title: "Error updating material",
-        description: error.message || "An unexpected error occurred",
+        title: "Success",
+        description: `Material ${newMaterial.name} added successfully.`,
+      });
+      return data;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
         variant: "destructive",
       });
-      return false;
+      return null;
     } finally {
       setLoading(false);
     }
   };
 
-  const deleteMaterial = async (id: string) => {
+  const updateMaterial = async (materialId: string, updates: MaterialUpdate) => {
     setLoading(true);
     try {
-      console.log("Deleting material:", id);
-      
-      // Perform the actual database delete
+      const { data, error } = await supabase
+        .from('inventory_items')
+        .update(updates)
+        .eq('id', materialId)
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: `Material ${updates.name || 'item'} updated successfully.`,
+      });
+      return data;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteMaterial = async (materialId: string) => {
+    setLoading(true);
+    try {
       const { error } = await supabase
         .from('inventory_items')
         .delete()
-        .eq('id', id);
-      
+        .eq('id', materialId);
+
       if (error) {
-        console.error("Supabase error details:", error);
         throw error;
       }
-      
-      sonnerToast.success("Material removed successfully");
+
+      toast({
+        title: "Success",
+        description: "Material deleted successfully.",
+      });
       return true;
     } catch (error: any) {
-      console.error("Error deleting material:", error);
       toast({
-        title: "Error removing material",
-        description: error.message || "An unexpected error occurred",
+        title: "Error",
+        description: error.message,
         variant: "destructive",
       });
       return false;
@@ -71,59 +108,5 @@ export function useMaterialOperations() {
     }
   };
 
-  const addMaterial = async (data: any) => {
-    setLoading(true);
-    try {
-      console.log("Adding material with data:", data);
-      
-      // Extract numeric value from unitPrice
-      let unitPrice = data.unitPrice;
-      if (typeof unitPrice === 'string') {
-        // Remove any currency symbol and convert to number
-        unitPrice = parseFloat(unitPrice.replace(/[^0-9.-]+/g, ''));
-      }
-      
-      console.log("Parsed unit price:", unitPrice);
-      
-      // Insert directly to Supabase
-      const { data: materialData, error } = await supabase
-        .from('inventory_items')
-        .insert({
-          name: data.name,
-          category: data.category,
-          unit: data.unit,
-          quantity: parseInt(data.quantity),
-          unit_price: unitPrice,
-          supplier: data.supplier || null,
-        })
-        .select()
-        .single();
-      
-      if (error) {
-        console.error("Supabase error details:", error);
-        throw error;
-      }
-      
-      console.log("Material added successfully:", materialData);
-      sonnerToast.success("Material added successfully");
-      return true;
-    } catch (error: any) {
-      console.error("Error adding material:", error);
-      toast({
-        title: "Error adding material",
-        description: error.message || "An unexpected error occurred",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return {
-    loading,
-    updateMaterial,
-    deleteMaterial,
-    addMaterial,
-  };
+  return { loading, addMaterial, updateMaterial, deleteMaterial };
 }
