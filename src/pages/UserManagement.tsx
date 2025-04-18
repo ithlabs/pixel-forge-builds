@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -65,6 +66,14 @@ const UserManagement: React.FC = () => {
 
   const updateUserRole = async (userId: string, newRole: UserProfile['role']) => {
     try {
+      // Get current session to check if the user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast.error('You must be logged in to update user roles');
+        return;
+      }
+
       const { error } = await supabase
         .from('user_roles')
         .update({ role: newRole })
@@ -86,20 +95,28 @@ const UserManagement: React.FC = () => {
     firstName: string, 
     lastName: string,
     phoneNumber: string,
-    address: string
+    address: string,
+    password: string
   ) => {
     try {
+      // Check if the current user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast.error('You must be logged in to invite users');
+        return;
+      }
+      
       // First, create the user with signup
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.admin.createUser({
         email,
-        password: Math.random().toString(36).slice(-10), // Generate random password
-        options: {
-          data: { 
-            first_name: firstName,
-            last_name: lastName,
-            phone: phoneNumber,
-            address: address
-          }
+        password,
+        email_confirm: true, // Auto-confirm the email
+        user_metadata: { 
+          first_name: firstName,
+          last_name: lastName,
+          phone: phoneNumber,
+          address: address
         }
       });
       
@@ -107,12 +124,25 @@ const UserManagement: React.FC = () => {
       
       // If user is created successfully, set their role
       if (data && data.user) {
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: data.user.id,
-            role: role
+        // Create the profile record
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: data.user.id,
+            email,
+            first_name: firstName,
+            last_name: lastName,
+            phone: phoneNumber,
+            address: address
           });
+          
+        if (profileError) throw profileError;
+        
+        // Add the role
+        const { error: roleError } = await supabase.rpc('create_user_role', {
+          user_id_param: data.user.id,
+          role_param: role
+        });
         
         if (roleError) throw roleError;
         

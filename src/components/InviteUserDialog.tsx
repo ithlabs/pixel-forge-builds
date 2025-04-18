@@ -28,7 +28,6 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 type UserRole = 'owner' | 'admin' | 'manager' | 'employee';
@@ -36,7 +35,15 @@ type UserRole = 'owner' | 'admin' | 'manager' | 'employee';
 interface InviteUserDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onInvite: (email: string, role: UserRole, firstName: string, lastName: string, phoneNumber: string, address: string) => void;
+  onInvite: (
+    email: string, 
+    role: UserRole, 
+    firstName: string, 
+    lastName: string, 
+    phoneNumber: string, 
+    address: string,
+    password: string
+  ) => void;
 }
 
 const formSchema = z.object({
@@ -77,37 +84,17 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     try {
-      // Sign up the user with the provided password
-      const { data, error } = await supabase.auth.signUp({
-        email: values.email,
-        password: values.password,
-        options: {
-          data: {
-            first_name: values.firstName,
-            last_name: values.lastName,
-            phone: values.phoneNumber,
-            address: values.address
-          }
-        }
-      });
+      await onInvite(
+        values.email,
+        values.role as UserRole,
+        values.firstName,
+        values.lastName,
+        values.phoneNumber,
+        values.address,
+        values.password
+      );
 
-      if (error) throw error;
-
-      // If user is created successfully, set their role
-      if (data && data.user) {
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: data.user.id,
-            role: values.role
-          });
-
-        if (roleError) throw roleError;
-
-        toast.success(`Invitation sent to ${values.email}. Please check your email to confirm.`);
-        form.reset();
-        onClose();
-      }
+      form.reset();
     } catch (error: any) {
       console.error('Error inviting user:', error);
       toast.error(error.message || 'Failed to invite user');
