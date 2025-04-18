@@ -15,7 +15,6 @@ const Inventory: React.FC = () => {
   const [showRestockDialog, setShowRestockDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   
-  // Get materials management functions
   const { 
     loading, 
     materials, 
@@ -53,19 +52,12 @@ const Inventory: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {materials && materials.map((material) => {
-          // Define low stock threshold (20% of total or less than 10)
           const lowStock = material.quantity < 10 || material.quantity < (material.initial_quantity * 0.2);
           
           return (
             <MaterialCard
               key={material.id}
-              id={material.id}
-              name={material.name}
-              category={material.category}
-              quantity={material.quantity}
-              unit={material.unit}
-              unitPrice={material.unit_price}
-              supplier={material.supplier}
+              material={material}
               isLowStock={lowStock}
               onRestock={() => {
                 setSelectedMaterialId(material.id);
@@ -80,26 +72,23 @@ const Inventory: React.FC = () => {
         })}
       </div>
 
-      {/* Add Material Dialog */}
       {showAddMaterial && (
         <AddMaterialDialog
-          isOpen={showAddMaterial}
+          open={showAddMaterial}
           onClose={() => setShowAddMaterial(false)}
-          onAddMaterial={addMaterial}
+          onSubmit={addMaterial}
         />
       )}
 
-      {/* Restock Dialog */}
       {showRestockDialog && selectedMaterial && (
         <RestockDialog
-          isOpen={showRestockDialog}
+          open={showRestockDialog}
           onClose={() => setShowRestockDialog(false)}
           materialId={selectedMaterial.id}
           materialName={selectedMaterial.name}
           currentStock={selectedMaterial.quantity}
           unit={selectedMaterial.unit}
-          onRestock={(quantity) => {
-            // Handle restock logic
+          onRestock={(quantity: number) => {
             updateMaterial(selectedMaterial.id, {
               quantity: selectedMaterial.quantity + quantity
             });
@@ -108,10 +97,9 @@ const Inventory: React.FC = () => {
         />
       )}
 
-      {/* History Dialog */}
       {showHistoryDialog && selectedMaterial && (
         <HistoryDialog
-          isOpen={showHistoryDialog}
+          open={showHistoryDialog}
           onClose={() => setShowHistoryDialog(false)}
           materialId={selectedMaterial.id}
           materialName={selectedMaterial.name}

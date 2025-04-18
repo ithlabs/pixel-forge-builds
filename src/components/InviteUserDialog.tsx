@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -59,8 +58,34 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
     }
   });
 
-  const handleSubmit = (values: z.infer<typeof formSchema>) => {
-    onInvite(values.email, values.role, values.firstName, values.lastName);
+  const handleSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
+        values.email,
+        {
+          data: {
+            first_name: values.firstName,
+            last_name: values.lastName,
+          }
+        }
+      );
+
+      if (authError) throw authError;
+
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: authData.user.id,
+          role: values.role
+        });
+
+      if (roleError) throw roleError;
+
+      toast.success(`Invitation sent to ${values.email}`);
+      onClose();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to invite user');
+    }
   };
 
   return (
