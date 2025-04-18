@@ -36,13 +36,15 @@ type UserRole = 'owner' | 'admin' | 'manager' | 'employee';
 interface InviteUserDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onInvite: (email: string, role: UserRole, firstName: string, lastName: string) => void;
+  onInvite: (email: string, role: UserRole, firstName: string, lastName: string, phoneNumber: string, address: string) => void;
 }
 
 const formSchema = z.object({
   email: z.string().email('Please enter a valid email'),
   firstName: z.string().min(2, 'First name is required'),
   lastName: z.string().min(2, 'Last name is required'),
+  phoneNumber: z.string().min(5, 'Phone number is required'),
+  address: z.string().min(5, 'Address is required'),
   role: z.enum(['owner', 'admin', 'manager', 'employee'])
 });
 
@@ -57,6 +59,8 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
       email: '',
       firstName: '',
       lastName: '',
+      phoneNumber: '',
+      address: '',
       role: 'employee'
     }
   });
@@ -64,7 +68,14 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       // Using onInvite callback to let the parent component handle the invitation
-      onInvite(values.email, values.role, values.firstName, values.lastName);
+      onInvite(
+        values.email, 
+        values.role, 
+        values.firstName, 
+        values.lastName,
+        values.phoneNumber,
+        values.address
+      );
       form.reset();
     } catch (error: any) {
       toast.error(error.message || 'Failed to invite user');
@@ -119,6 +130,34 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
                   <FormLabel>Last Name</FormLabel>
                   <FormControl>
                     <Input placeholder="Doe" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="phoneNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone Number</FormLabel>
+                  <FormControl>
+                    <Input placeholder="+1 555-0123" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Address</FormLabel>
+                  <FormControl>
+                    <Input placeholder="123 Main St, City" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Settings } from "lucide-react";
+import { Plus, Settings, UserPlus } from "lucide-react";
 
 import { 
   Select, 
@@ -23,6 +23,8 @@ type UserProfile = {
   role: UserRole;
   first_name: string | null;
   last_name: string | null;
+  phone: string | null;
+  address: string | null;
 };
 
 const UserManagement: React.FC = () => {
@@ -33,30 +35,34 @@ const UserManagement: React.FC = () => {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.admin.listUsers();
+      // Fetch profiles and roles from public schema tables instead of auth admin
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, email, first_name, last_name, phone, address');
       
-      if (error) throw error;
+      if (profilesError) throw profilesError;
 
+      // Fetch roles for each profile
       const userProfiles = await Promise.all(
-        data.users.map(async (user) => {
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('first_name, last_name')
-            .eq('id', user.id)
-            .single();
-
-          const { data: roleData } = await supabase
+        profilesData.map(async (profile) => {
+          const { data: roleData, error: roleError } = await supabase
             .from('user_roles')
             .select('role')
-            .eq('user_id', user.id)
+            .eq('user_id', profile.id)
             .single();
 
+          if (roleError && roleError.code !== 'PGRST116') {
+            console.error('Error fetching role:', roleError);
+          }
+
           return {
-            id: user.id,
-            email: user.email || '',
+            id: profile.id,
+            email: profile.email || '',
             role: (roleData?.role as UserRole) || 'employee',
-            first_name: profileData?.first_name || null,
-            last_name: profileData?.last_name || null,
+            first_name: profile.first_name,
+            last_name: profile.last_name,
+            phone: profile.phone,
+            address: profile.address
           };
         })
       );
@@ -87,18 +93,28 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const handleInviteUser = async (email: string, role: UserRole, firstName: string, lastName: string) => {
+  const handleInviteUser = async (
+    email: string, 
+    role: UserRole, 
+    firstName: string, 
+    lastName: string,
+    phoneNumber: string,
+    address: string
+  ) => {
     try {
-      // First, create the user in Supabase Auth
-      const { data, error } = await supabase.auth.admin.inviteUserByEmail(
-        email, 
-        { 
+      // First, create the user with signup
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password: Math.random().toString(36).slice(-10), // Generate random password
+        options: {
           data: { 
             first_name: firstName,
-            last_name: lastName
-          } 
+            last_name: lastName,
+            phone: phoneNumber,
+            address: address
+          }
         }
-      );
+      });
       
       if (error) throw error;
       
@@ -112,11 +128,11 @@ const UserManagement: React.FC = () => {
           });
         
         if (roleError) throw roleError;
+        
+        toast.success(`Invitation sent to ${email}. A confirmation email has been sent to the user.`);
+        setShowInviteDialog(false);
+        fetchUsers();
       }
-      
-      toast.success(`Invitation sent to ${email}`);
-      setShowInviteDialog(false);
-      fetchUsers();
     } catch (error: any) {
       console.error('Error inviting user:', error);
       toast.error(error.message || 'Failed to invite user');
@@ -135,7 +151,7 @@ const UserManagement: React.FC = () => {
           description="Manage users and their roles in the ERP system"
         />
         <Button className="bg-construction-orange" onClick={() => setShowInviteDialog(true)}>
-          <Plus className="mr-2 h-4 w-4" /> Invite User
+          <UserPlus className="mr-2 h-4 w-4" /> Invite User
         </Button>
       </div>
 
@@ -145,6 +161,7 @@ const UserManagement: React.FC = () => {
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
@@ -152,11 +169,11 @@ const UserManagement: React.FC = () => {
           <tbody className="bg-white divide-y divide-gray-200">
             {isLoading ? (
               <tr>
-                <td colSpan={4} className="px-6 py-4 text-center">Loading users...</td>
+                <td colSpan={5} className="px-6 py-4 text-center">Loading users...</td>
               </tr>
             ) : users.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-6 py-4 text-center">No users found</td>
+                <td colSpan={5} className="px-6 py-4 text-center">No users found</td>
               </tr>
             ) : (
               users.map((user) => (
@@ -165,6 +182,7 @@ const UserManagement: React.FC = () => {
                     {user.first_name} {user.last_name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{user.phone || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <Select 
                       value={user.role} 
@@ -182,7 +200,9 @@ const UserManagement: React.FC = () => {
                     </Select>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {/* Future action buttons like delete, reset password */}
+                    <Button variant="outline" size="sm">
+                      <Settings className="h-4 w-4 mr-1" /> Manage
+                    </Button>
                   </td>
                 </tr>
               ))
