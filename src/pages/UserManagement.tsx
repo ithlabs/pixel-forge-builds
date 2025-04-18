@@ -33,12 +33,12 @@ const UserManagement: React.FC = () => {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const { data: { users: authUsers }, error } = await supabase.auth.admin.listUsers();
+      const { data, error } = await supabase.auth.admin.listUsers();
       
       if (error) throw error;
 
       const userProfiles = await Promise.all(
-        authUsers.map(async (user) => {
+        data.users.map(async (user) => {
           const { data: profileData } = await supabase
             .from('profiles')
             .select('first_name, last_name')
@@ -62,7 +62,7 @@ const UserManagement: React.FC = () => {
       );
 
       setUsers(userProfiles);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching users:', error);
       toast.error('Failed to fetch users');
     } finally {
@@ -81,7 +81,7 @@ const UserManagement: React.FC = () => {
       
       toast.success(`User role updated to ${newRole}`);
       fetchUsers();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating role:', error);
       toast.error('Failed to update user role');
     }
@@ -90,7 +90,7 @@ const UserManagement: React.FC = () => {
   const handleInviteUser = async (email: string, role: UserRole, firstName: string, lastName: string) => {
     try {
       // First, create the user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
+      const { data, error } = await supabase.auth.admin.inviteUserByEmail(
         email, 
         { 
           data: { 
@@ -100,11 +100,23 @@ const UserManagement: React.FC = () => {
         }
       );
       
-      if (authError) throw authError;
+      if (error) throw error;
+      
+      // If user is created successfully, set their role
+      if (data && data.user) {
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: data.user.id,
+            role: role
+          });
+        
+        if (roleError) throw roleError;
+      }
       
       toast.success(`Invitation sent to ${email}`);
-      fetchUsers();
       setShowInviteDialog(false);
+      fetchUsers();
     } catch (error: any) {
       console.error('Error inviting user:', error);
       toast.error(error.message || 'Failed to invite user');
@@ -138,33 +150,43 @@ const UserManagement: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {users.map((user) => (
-              <tr key={user.id}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {user.first_name} {user.last_name}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <Select 
-                    value={user.role} 
-                    onValueChange={(newRole) => updateUserRole(user.id, newRole as UserRole)}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue>{user.role}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="owner">Owner</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="manager">Manager</SelectItem>
-                      <SelectItem value="employee">Employee</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {/* Future action buttons like delete, reset password */}
-                </td>
+            {isLoading ? (
+              <tr>
+                <td colSpan={4} className="px-6 py-4 text-center">Loading users...</td>
               </tr>
-            ))}
+            ) : users.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-6 py-4 text-center">No users found</td>
+              </tr>
+            ) : (
+              users.map((user) => (
+                <tr key={user.id}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {user.first_name} {user.last_name}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <Select 
+                      value={user.role} 
+                      onValueChange={(newRole) => updateUserRole(user.id, newRole as UserRole)}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue>{user.role}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="owner">Owner</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="employee">Employee</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {/* Future action buttons like delete, reset password */}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
