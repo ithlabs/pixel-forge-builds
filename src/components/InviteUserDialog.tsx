@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -41,11 +41,16 @@ interface InviteUserDialogProps {
 
 const formSchema = z.object({
   email: z.string().email('Please enter a valid email'),
-  firstName: z.string().min(2, 'First name is required'),
-  lastName: z.string().min(2, 'Last name is required'),
-  phoneNumber: z.string().min(5, 'Phone number is required'),
-  address: z.string().min(5, 'Address is required'),
-  role: z.enum(['owner', 'admin', 'manager', 'employee'])
+  firstName: z.string().min(2, 'First name is required').max(50, 'First name is too long'),
+  lastName: z.string().min(2, 'Last name is required').max(50, 'Last name is too long'),
+  phoneNumber: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number'),
+  address: z.string().min(5, 'Address is required').max(200, 'Address is too long'),
+  role: z.enum(['owner', 'admin', 'manager', 'employee']),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  confirmPassword: z.string()
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"]
 });
 
 export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({ 
@@ -53,6 +58,8 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
   onClose, 
   onInvite 
 }) => {
+  const [isLoading, setIsLoading] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -61,24 +68,51 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
       lastName: '',
       phoneNumber: '',
       address: '',
-      role: 'employee'
+      role: 'employee',
+      password: '',
+      confirmPassword: ''
     }
   });
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsLoading(true);
     try {
-      // Using onInvite callback to let the parent component handle the invitation
-      onInvite(
-        values.email, 
-        values.role, 
-        values.firstName, 
-        values.lastName,
-        values.phoneNumber,
-        values.address
-      );
-      form.reset();
+      // Sign up the user with the provided password
+      const { data, error } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password,
+        options: {
+          data: {
+            first_name: values.firstName,
+            last_name: values.lastName,
+            phone: values.phoneNumber,
+            address: values.address
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      // If user is created successfully, set their role
+      if (data && data.user) {
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: data.user.id,
+            role: values.role
+          });
+
+        if (roleError) throw roleError;
+
+        toast.success(`Invitation sent to ${values.email}. Please check your email to confirm.`);
+        form.reset();
+        onClose();
+      }
     } catch (error: any) {
+      console.error('Error inviting user:', error);
       toast.error(error.message || 'Failed to invite user');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -191,12 +225,40 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="Set initial password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirm Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="Confirm password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-construction-orange">
-                Send Invitation
+              <Button type="submit" className="bg-construction-orange" disabled={isLoading}>
+                {isLoading ? 'Sending...' : 'Send Invitation'}
               </Button>
             </DialogFooter>
           </form>

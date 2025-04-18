@@ -8,6 +8,9 @@ import { AddMaterialDialog } from "@/components/AddMaterialDialog";
 import { RestockDialog } from "@/components/RestockDialog";
 import { HistoryDialog } from "@/components/HistoryDialog";
 import { useMaterialOperations } from "@/hooks/useMaterialOperations";
+import { MaterialCardProps } from "@/components/MaterialCard";
+import { AddMaterialDialogProps } from "@/components/AddMaterialDialog";
+import { HistoryDialogProps } from "@/components/HistoryDialog";
 
 interface Material {
   id: string;
@@ -28,19 +31,13 @@ const Inventory: React.FC = () => {
   
   const { 
     loading, 
-    materials = [], // Provide a default empty array
+    materials = [], 
     addMaterial, 
     updateMaterial, 
     deleteMaterial 
-  } = useMaterialOperations() as {
-    loading: boolean;
-    materials?: Material[];
-    addMaterial: any;
-    updateMaterial: any;
-    deleteMaterial: any;
-  };
+  } = useMaterialOperations();
 
-  const selectedMaterial = materials?.find(
+  const selectedMaterial = materials.find(
     (material) => material.id === selectedMaterialId
   );
 
@@ -68,22 +65,26 @@ const Inventory: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {materials && materials.map((material) => {
+        {materials.map((material) => {
           const lowStock = material.quantity < 10 || material.quantity < (material.initial_quantity ? material.initial_quantity * 0.2 : 10);
+          
+          const materialCardProps: MaterialCardProps = {
+            materialData: material,
+            isLowStock: lowStock,
+            onRestock: () => {
+              setSelectedMaterialId(material.id);
+              setShowRestockDialog(true);
+            },
+            onViewHistory: () => {
+              setSelectedMaterialId(material.id);
+              setShowHistoryDialog(true);
+            }
+          };
           
           return (
             <MaterialCard
               key={material.id}
-              materialData={material as any}
-              isLowStock={lowStock}
-              onRestock={() => {
-                setSelectedMaterialId(material.id);
-                setShowRestockDialog(true);
-              }}
-              onViewHistory={() => {
-                setSelectedMaterialId(material.id);
-                setShowHistoryDialog(true);
-              }}
+              {...materialCardProps}
             />
           );
         })}
@@ -91,7 +92,7 @@ const Inventory: React.FC = () => {
 
       {showAddMaterial && (
         <AddMaterialDialog
-          open={showAddMaterial}
+          open={true}
           onClose={() => setShowAddMaterial(false)}
           onSubmit={addMaterial}
         />
@@ -99,7 +100,7 @@ const Inventory: React.FC = () => {
 
       {showRestockDialog && selectedMaterial && (
         <RestockDialog
-          open={showRestockDialog}
+          open={true}
           onClose={() => setShowRestockDialog(false)}
           materialId={selectedMaterial.id}
           materialName={selectedMaterial.name}
@@ -116,10 +117,10 @@ const Inventory: React.FC = () => {
 
       {showHistoryDialog && selectedMaterial && (
         <HistoryDialog
-          open={showHistoryDialog}
-          onClose={() => setShowHistoryDialog(false)}
+          open={true}
           materialId={selectedMaterial.id}
           materialName={selectedMaterial.name}
+          onClose={() => setShowHistoryDialog(false)}
         />
       )}
     </div>

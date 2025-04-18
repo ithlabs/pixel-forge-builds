@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Settings, UserPlus } from "lucide-react";
+import { UserProfile } from "@/types";
 
 import { 
   Select, 
@@ -15,18 +15,6 @@ import {
 } from "@/components/ui/select";
 import { InviteUserDialog } from '@/components/InviteUserDialog';
 
-type UserRole = 'owner' | 'admin' | 'manager' | 'employee';
-
-type UserProfile = {
-  id: string;
-  email: string;
-  role: UserRole;
-  first_name: string | null;
-  last_name: string | null;
-  phone: string | null;
-  address: string | null;
-};
-
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,7 +23,6 @@ const UserManagement: React.FC = () => {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      // Fetch profiles and roles from public schema tables instead of auth admin
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, email, first_name, last_name, phone, address');
@@ -58,7 +45,7 @@ const UserManagement: React.FC = () => {
           return {
             id: profile.id,
             email: profile.email || '',
-            role: (roleData?.role as UserRole) || 'employee',
+            role: (roleData?.role as UserProfile['role']) || 'employee',
             first_name: profile.first_name,
             last_name: profile.last_name,
             phone: profile.phone,
@@ -76,7 +63,7 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const updateUserRole = async (userId: string, newRole: UserRole) => {
+  const updateUserRole = async (userId: string, newRole: UserProfile['role']) => {
     try {
       const { error } = await supabase
         .from('user_roles')
@@ -95,7 +82,7 @@ const UserManagement: React.FC = () => {
 
   const handleInviteUser = async (
     email: string, 
-    role: UserRole, 
+    role: UserProfile['role'], 
     firstName: string, 
     lastName: string,
     phoneNumber: string,
@@ -186,7 +173,7 @@ const UserManagement: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <Select 
                       value={user.role} 
-                      onValueChange={(newRole) => updateUserRole(user.id, newRole as UserRole)}
+                      onValueChange={(newRole) => updateUserRole(user.id, newRole as UserProfile['role'])}
                     >
                       <SelectTrigger className="w-[180px]">
                         <SelectValue>{user.role}</SelectValue>
@@ -211,7 +198,6 @@ const UserManagement: React.FC = () => {
         </table>
       </div>
 
-      {/* Invite User Dialog */}
       <InviteUserDialog 
         isOpen={showInviteDialog} 
         onClose={() => setShowInviteDialog(false)} 
